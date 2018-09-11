@@ -50,8 +50,9 @@ def viewprep(session, dir='probeview',flush=120,queue=10):
 #        tensorboard --logdir=probeview
 # Then open a Chrome browser and go to site:  localhost:6006
 
-def fireup_tensorboard(logdir):
+def fireup_tensorboard(logdir, logwash=True):
     os.system('tensorboard --logdir='+logdir)
+    if logwash: clear_tensorflow_log(logdir)
 
 def clear_tensorflow_log(logdir):
     os.system('rm ' + logdir +'/events.out.*')
@@ -300,7 +301,7 @@ def gen_segmented_vector_cases(vectorlen,count,minsegs,maxsegs,poptargs=True):
     for c in range(count):
         numsegs = NPR.randint(minsegs,maxsegs+1)
         v = gen_segmented_vector(vectorlen,numsegs)
-        case = [v,int_to_one_hot(numsegs,maxsegs-minsegs+1)] if poptargs else [v,numsegs]
+        case = [v,int_to_one_hot(numsegs-minsegs,maxsegs-minsegs+1)] if poptargs else [v,numsegs]
         cases.append(case)
     return cases
 
