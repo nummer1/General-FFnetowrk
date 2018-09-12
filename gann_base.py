@@ -8,19 +8,18 @@ import tflowtools as TFT
 # This is the original GANN, which has been improved in the file gann.py
 
 class Gann():
-
-    def __init__(self, dims, cman,lrate=.1,showint=None,mbs=10,vint=None,softmax=False):
+    def __init__(self, dims, cman, lrate=.1, showint=None, mbs=10, vint=None, softmax=False):
         self.learning_rate = lrate
-        self.layer_sizes = dims # Sizes of each layer of neurons
-        self.show_interval = showint # Frequency of showing grabbed variables
-        self.global_training_step = 0 # Enables coherent data-storage during extra training runs (see runmore).
-        self.grabvars = []  # Variables to be monitored (by gann code) during a run.
-        self.grabvar_figures = [] # One matplotlib figure for each grabvar
+        self.layer_sizes = dims  # Sizes of each layer of neurons
+        self.show_interval = showint  # Frequency of showing grabbed variables
         self.minibatch_size = mbs
         self.validation_interval = vint
-        self.validation_history = []
         self.caseman = cman
         self.softmax_outputs = softmax
+        self.global_training_step = 0  # Enables coherent data-storage during extra training runs (see runmore).
+        self.grabvars = []  # Variables to be monitored (by gann code) during a run.
+        self.grabvar_figures = []  # One matplotlib figure for each grabvar
+        self.validation_history = []
         self.modules = []
         self.build()
 
@@ -28,29 +27,32 @@ class Gann():
     def gen_probe(self, module_index, type, spec):
         self.modules[module_index].gen_probe(type, spec)
 
-    # Grabvars are displayed by my own code, so I have more control over the display format.  Each
-    # grabvar gets its own matplotlib figure in which to display its value.
-    def add_grabvar(self,module_index,type='wgt'):
+    # Grabvars are displayed by my own code, so I have more control over the display format.
+    # Each grabvar gets its own matplotlib figure in which to display its value.
+    def add_grabvar(self, module_index, type='wgt'):
         self.grabvars.append(self.modules[module_index].getvar(type))
         self.grabvar_figures.append(PLT.figure())
 
     def roundup_probes(self):
         self.probes = tf.summary.merge_all()
 
-    def add_module(self,module): self.modules.append(module)
+    def add_module(self, module): self.modules.append(module)
 
     def build(self):
         tf.reset_default_graph()  # This is essential for doing multiple runs!!
         num_inputs = self.layer_sizes[0]
         self.input = tf.placeholder(tf.float64, shape=(None, num_inputs), name='Input')
-        invar = self.input; insize = num_inputs
+        invar = self.input
+        insize = num_inputs
         # Build all of the modules
-        for i,outsize in enumerate(self.layer_sizes[1:]):
-            gmod = Gannmodule(self,i,invar,insize,outsize)
-            invar = gmod.output; insize = gmod.outsize
-        self.output = gmod.output # Output of last module is output of whole network
-        if self.softmax_outputs: self.output = tf.nn.softmax(self.output)
-        self.target = tf.placeholder(tf.float64,shape=(None,gmod.outsize),name='Target')
+        for i, outsize in enumerate(self.layer_sizes[1:]):
+            gmod = Gannmodule(self, i, invar, insize, outsize)
+            invar = gmod.output
+            insize = gmod.outsize
+        self.output = gmod.output  # Output of last module is output of whole network
+        if self.softmax_outputs:
+            self.output = tf.nn.softmax(self.output)
+        self.target = tf.placeholder(tf.float64,shape=(None, gmod.outsize), name='Target')
         self.configure_learning()
 
     # The optimizer knows to gather up all "trainable" variables in the function graph and compute
@@ -58,7 +60,7 @@ class Gann():
     # of the weight array.
 
     def configure_learning(self):
-        self.error = tf.reduce_mean(tf.square(self.target - self.output),name='MSE')
+        self.error = tf.reduce_mean(tf.square(self.target - self.output), name='MSE')
         self.predictor = self.output  # Simple prediction runs will request the value of output neurons
         # Defining the training operator
         optimizer = tf.train.GradientDescentOptimizer(self.learning_rate)
@@ -214,32 +216,32 @@ class Gann():
 
 # A general ann module = a layer of neurons (the output) plus its incoming weights and biases.
 class Gannmodule():
-
-    def __init__(self,ann,index,invariable,insize,outsize):
+    def __init__(self, ann, index, invariable, insize, outsize):
         self.ann = ann
-        self.insize=insize  # Number of neurons feeding into this module
-        self.outsize=outsize # Number of neurons in this module
+        self.insize = insize  # Number of neurons feeding into this module
+        self.outsize = outsize  # Number of neurons in this module
         self.input = invariable  # Either the gann's input variable or the upstream module's output
         self.index = index
         self.name = "Module-"+str(self.index)
         self.build()
 
     def build(self):
-        mona = self.name; n = self.outsize
+        mona = self.name
+        n = self.outsize
         self.weights = tf.Variable(np.random.uniform(-.1, .1, size=(self.insize,n)),
-                                   name=mona+'-wgt',trainable=True) # True = default for trainable anyway
+                    name=mona+'-wgt',trainable=True)  # True = default for trainable anyway
         self.biases = tf.Variable(np.random.uniform(-.1, .1, size=n),
-                                  name=mona+'-bias', trainable=True)  # First bias vector
+                    name=mona+'-bias', trainable=True)  # First bias vector
         self.output = tf.nn.relu(tf.matmul(self.input,self.weights)+self.biases,name=mona+'-out')
         self.ann.add_module(self)
 
-    def getvar(self,type):  # type = (in,out,wgt,bias)
+    def getvar(self, type):  # type = (in,out,wgt,bias)
         return {'in': self.input, 'out': self.output, 'wgt': self.weights, 'bias': self.biases}[type]
 
     # spec, a list, can contain one or more of (avg,max,min,hist); type = (in, out, wgt, bias)
-    def gen_probe(self,type,spec):
+    def gen_probe(self, type, spec):
         var = self.getvar(type)
-        base = self.name +'_'+type
+        base = self.name + '_' + type
         with tf.name_scope('probe_'):
             if ('avg' in spec) or ('stdev' in spec):
                 avg = tf.reduce_mean(var)
@@ -250,15 +252,14 @@ class Gannmodule():
             if 'min' in spec:
                 tf.summary.scalar(base + '/min/', tf.reduce_min(var))
             if 'hist' in spec:
-                tf.summary.histogram(base + '/hist/',var)
+                tf.summary.histogram(base + '/hist/', var)
 
 # *********** CASE MANAGER ********
 # This is a simple class for organizing the cases (training, validation and test) for a
 # a machine-learning system
 
 class Caseman():
-
-    def __init__(self,cfunc,vfrac=0,tfrac=0):
+    def __init__(self, cfunc, vfrac=0, tfrac=0):
         self.casefunc = cfunc
         self.validation_fraction = vfrac
         self.test_fraction = tfrac
@@ -273,7 +274,7 @@ class Caseman():
         ca = np.array(self.cases)
         np.random.shuffle(ca) # Randomly shuffle all cases
         separator1 = round(len(self.cases) * self.training_fraction)
-        separator2 = separator1 + round(len(self.cases)*self.validation_fraction)
+        separator2 = separator1 + round(len(self.cases) * self.validation_fraction)
         self.training_cases = ca[0:separator1]
         self.validation_cases = ca[separator1:separator2]
         self.testing_cases = ca[separator2:]

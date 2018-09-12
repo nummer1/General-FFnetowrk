@@ -54,7 +54,7 @@ class argument_parser():
         # returns a list of inputs and targets
         data_set = []
 
-        if self.args.datasource[-4:] = ".txt":
+        if self.args.datasource[-4:] == ".txt":
             with open(self.args.datasource) as file:
                 data_set_line = []
                 for line in file.readlines():

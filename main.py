@@ -1,15 +1,11 @@
 import argument_parser
 import gann_base
 
-LOG_DIR = "probeview"
-
-
-
 
 def main():
-    parser = argument_parser.argument_parser()
-    parser.parse()
-    network = parser.build()
+    # parser = argument_parser.argument_parser()
+    # parser.parse()
+    gann_base.autoex()
 
 
 main()
