@@ -8,13 +8,14 @@ import tflowtools as TFT
 # This is the original GANN, which has been improved in the file gann.py
 
 class Gann():
-    def __init__(self, dims, cman, lrate=.1, showint=None, mbs=10, vint=None, softmax=False):
-        self.learning_rate = lrate
+    def __init__(self, dims, cman, afunc, lrate=.1, showint=None, mbs=10, vint=None, softmax=False):
         self.layer_sizes = dims  # Sizes of each layer of neurons
+        self.caseman = cman
+        self.activation_func = afunc
+        self.learning_rate = lrate
         self.show_interval = showint  # Frequency of showing grabbed variables
         self.minibatch_size = mbs
         self.validation_interval = vint
-        self.caseman = cman
         self.softmax_outputs = softmax
         self.global_training_step = 0  # Enables coherent data-storage during extra training runs (see runmore).
         self.grabvars = []  # Variables to be monitored (by gann code) during a run.
@@ -46,58 +47,61 @@ class Gann():
         insize = num_inputs
         # Build all of the modules
         for i, outsize in enumerate(self.layer_sizes[1:]):
-            gmod = Gannmodule(self, i, invar, insize, outsize)
+            gmod = Gannmodule(self, i, invar, insize, outsize, self.activation_func)
             invar = gmod.output
             insize = gmod.outsize
         self.output = gmod.output  # Output of last module is output of whole network
-        if self.softmax_outputs:
-            self.output = tf.nn.softmax(self.output)
-        self.target = tf.placeholder(tf.float64,shape=(None, gmod.outsize), name='Target')
+        if self.softmax_outputs: self.output = tf.nn.softmax(self.output)
+        self.target = tf.placeholder(tf.float64, shape=(None, gmod.outsize), name='Target')
         self.configure_learning()
 
     # The optimizer knows to gather up all "trainable" variables in the function graph and compute
     # derivatives of the error function with respect to each component of each variable, i.e. each weight
     # of the weight array.
-
     def configure_learning(self):
         self.error = tf.reduce_mean(tf.square(self.target - self.output), name='MSE')
         self.predictor = self.output  # Simple prediction runs will request the value of output neurons
         # Defining the training operator
         optimizer = tf.train.GradientDescentOptimizer(self.learning_rate)
-        self.trainer = optimizer.minimize(self.error,name='Backprop')
+        self.trainer = optimizer.minimize(self.error, name='Backprop')
 
-    def do_training(self,sess,cases,epochs=100,continued=False):
+    def do_training(self, sess, cases, epochs=100, continued=False):
         if not(continued): self.error_history = []
         for i in range(epochs):
-            error = 0; step = self.global_training_step + i
+            error = 0
+            step = self.global_training_step + i
             gvars = [self.error] + self.grabvars
-            mbs = self.minibatch_size; ncases = len(cases); nmb = math.ceil(ncases/mbs)
-            for cstart in range(0,ncases,mbs):  # Loop through cases, one minibatch at a time.
-                cend = min(ncases,cstart+mbs)
+            mbs = self.minibatch_size
+            ncases = len(cases)
+            nmb = math.ceil(ncases/mbs)
+            for cstart in range(0, ncases, mbs):  # Loop through cases, one minibatch at a time.
+                cend = min(ncases, cstart + mbs)
                 minibatch = cases[cstart:cend]
-                inputs = [c[0] for c in minibatch]; targets = [c[1] for c in minibatch]
+                inputs = [c[0] for c in minibatch]
+                targets = [c[1] for c in minibatch]
                 feeder = {self.input: inputs, self.target: targets}
-                _,grabvals,_ = self.run_one_step([self.trainer],gvars,self.probes,session=sess,
-                                         feed_dict=feeder,step=step,show_interval=self.show_interval)
+                _,grabvals,_ = self.run_one_step([self.trainer], gvars, self.probes,session=sess,
+                            feed_dict=feeder, step=step, show_interval=self.show_interval)
                 error += grabvals[0]
             self.error_history.append((step, error/nmb))
             self.consider_validation_testing(step,sess)
         self.global_training_step += epochs
-        TFT.plot_training_history(self.error_history,self.validation_history,xtitle="Epoch",ytitle="Error",
-                                  title="",fig=not(continued))
+        TFT.plot_training_history(self.error_history, self.validation_history,
+                    xtitle="Epoch", ytitle="Error", title="", fig=not(continued))
 
-    # bestk = 1 when you're doing a classification task and the targets are one-hot vectors.  This will invoke the
-    # gen_match_counter error function. Otherwise, when
-    # bestk=None, the standard MSE error function is used for testing.
+    # bestk = 1 when you're doing a classification task and the targets are one-hot vectors.
+    # This will invoke the gen_match_counter error function.
+    # Otherwise, when bestk=None, the standard MSE error function is used for testing.
 
-    def do_testing(self,sess,cases,msg='Testing',bestk=None):
-        inputs = [c[0] for c in cases]; targets = [c[1] for c in cases]
+    def do_testing(self, sess, cases, msg='Testing', bestk=None):
+        inputs = [c[0] for c in cases]
+        targets = [c[1] for c in cases]
         feeder = {self.input: inputs, self.target: targets}
         self.test_func = self.error
         if bestk is not None:
-            self.test_func = self.gen_match_counter(self.predictor,[TFT.one_hot_to_int(list(v)) for v in targets],k=bestk)
-        testres, grabvals, _ = self.run_one_step(self.test_func, self.grabvars, self.probes, session=sess,
-                                           feed_dict=feeder,  show_interval=None)
+            self.test_func = self.gen_match_counter(self.predictor, [TFT.one_hot_to_int(list(v)) for v in targets], k=bestk)
+        testres, grabvals, _ = self.run_one_step(self.test_func, self.grabvars, self.probes,
+                    session=sess, feed_dict=feeder, show_interval=None)
         if bestk is None:
             print('%s Set Error = %f ' % (msg, testres))
         else:
@@ -114,35 +118,34 @@ class Gann():
     # target.  Unfortunately, top_k requires a different set of arguments...and is harder to use.
 
     def gen_match_counter(self, logits, labels, k=1):
-        correct = tf.nn.in_top_k(tf.cast(logits,tf.float32), labels, k) # Return number of correct outputs
+        correct = tf.nn.in_top_k(tf.cast(logits,tf.float32), labels, k)  # Return number of correct outputs
         return tf.reduce_sum(tf.cast(correct, tf.int32))
 
-    def training_session(self,epochs,sess=None,dir="probeview",continued=False):
+    def training_session(self, epochs, sess=None, dir="probeview", continued=False):
         session = sess if sess else TFT.gen_initialized_session(dir=dir)
         self.current_session = session
-        self.roundup_probes() # this call must come AFTER the session is created, else graph is not in tensorboard.
-        self.do_training(session,self.caseman.get_training_cases(),epochs,continued=continued)
+        self.roundup_probes()  # this call must come AFTER the session is created, else graph is not in tensorboard.
+        self.do_training(session, self.caseman.get_training_cases(), epochs, continued=continued)
 
-    def testing_session(self,sess,bestk=None):
+    def testing_session(self, sess, bestk=None):
         cases = self.caseman.get_testing_cases()
         if len(cases) > 0:
-            self.do_testing(sess,cases,msg='Final Testing',bestk=bestk)
+            self.do_testing(sess, cases, msg='Final Testing', bestk=bestk)
 
-    def consider_validation_testing(self,epoch,sess):
+    def consider_validation_testing(self, epoch, sess):
         if self.validation_interval and (epoch % self.validation_interval == 0):
             cases = self.caseman.get_validation_cases()
             if len(cases) > 0:
-                error = self.do_testing(sess,cases,msg='Validation Testing')
+                error = self.do_testing(sess, cases, msg='Validation Testing')
                 self.validation_history.append((epoch,error))
 
     # Do testing (i.e. calc error without learning) on the training set.
-    def test_on_trains(self,sess,bestk=None):
-        self.do_testing(sess,self.caseman.get_training_cases(),msg='Total Training',bestk=bestk)
+    def test_on_trains(self, sess, bestk=None):
+        self.do_testing(sess, self.caseman.get_training_cases(), msg='Total Training', bestk=bestk)
 
     # Similar to the "quickrun" functions used earlier.
-
     def run_one_step(self, operators, grabbed_vars=None, probed_vars=None, dir='probeview',
-                  session=None, feed_dict=None, step=1, show_interval=1):
+                    session=None, feed_dict=None, step=1, show_interval=1):
         sess = session if session else TFT.gen_initialized_session(dir=dir)
         if probed_vars is not None:
             results = sess.run([operators, grabbed_vars, probed_vars], feed_dict=feed_dict)
@@ -154,23 +157,23 @@ class Gann():
         return results[0], results[1], sess
 
     def display_grabvars(self, grabbed_vals, grabbed_vars,step=1):
-        names = [x.name for x in grabbed_vars];
+        names = [x.name for x in grabbed_vars]
         msg = "Grabbed Variables at Step " + str(step)
         print("\n" + msg, end="\n")
         fig_index = 0
         for i, v in enumerate(grabbed_vals):
             if names: print("   " + names[i] + " = ", end="\n")
-            if type(v) == np.ndarray and len(v.shape) > 1: # If v is a matrix, use hinton plotting
-                TFT.hinton_plot(v,fig=self.grabvar_figures[fig_index],title= names[i]+ ' at step '+ str(step))
+            if type(v) == np.ndarray and len(v.shape) > 1:  # If v is a matrix, use hinton plotting
+                TFT.hinton_plot(v, fig=self.grabvar_figures[fig_index], title= names[i]+ ' at step ' + str(step))
                 fig_index += 1
             else:
                 print(v, end="\n\n")
 
-    def run(self,epochs=100,sess=None,continued=False,bestk=None):
+    def run(self, epochs=100, sess=None, continued=False, bestk=None):
         PLT.ion()
-        self.training_session(epochs,sess=sess,continued=continued)
-        self.test_on_trains(sess=self.current_session,bestk=bestk)
-        self.testing_session(sess=self.current_session,bestk=bestk)
+        self.training_session(epochs, sess=sess, continued=continued)
+        self.test_on_trains(sess=self.current_session, bestk=bestk)
+        self.testing_session(sess=self.current_session, bestk=bestk)
         self.close_current_session(view=False)
         PLT.ioff()
 
@@ -178,9 +181,9 @@ class Gann():
     # left off after the last call to run (or runmore).  Use of the "continued" parameter (along with
     # global_training_step) allows easy updating of the error graph to account for the additional run(s).
 
-    def runmore(self,epochs=100,bestk=None):
+    def runmore(self, epochs=100, bestk=None):
         self.reopen_current_session()
-        self.run(epochs,sess=self.current_session,continued=True,bestk=bestk)
+        self.run(epochs, sess=self.current_session, continued=True, bestk=bestk)
 
     #   ******* Saving GANN Parameters (weights and biases) *******************
     # This is useful when you want to use "runmore" to do additional training on a network.
@@ -189,6 +192,16 @@ class Gann():
     # (i.e. weights and biases), and then run the trained network on a set of test cases where you may choose to
     # monitor the network's activity (via grabvars, probes, etc) in a different way than you monitored during
     # training.
+
+    def gen_state_saver(self, mode='auto'):
+        if mode == 'manual':
+            state_vars = []
+            for m in self.modules:
+                 state_vars = state_vars + m.get_all_state_vars()  # E.g. get wgts and biases for a module
+            self.state_saver = tf.train.Saver(state_vars)
+        else:
+            with self.function_graph.as_default():
+                 self.state_saver = tf.train.Saver()
 
     def save_session_params(self, spath='netsaver/my_saved_session', sess=None, step=0):
         session = sess if sess else self.current_session
@@ -216,12 +229,13 @@ class Gann():
 
 # A general ann module = a layer of neurons (the output) plus its incoming weights and biases.
 class Gannmodule():
-    def __init__(self, ann, index, invariable, insize, outsize):
+    def __init__(self, ann, index, invariable, insize, outsize, afunc):
         self.ann = ann
+        self.index = index
+        self.input = invariable  # Either the gann's input variable or the upstream module's output
         self.insize = insize  # Number of neurons feeding into this module
         self.outsize = outsize  # Number of neurons in this module
-        self.input = invariable  # Either the gann's input variable or the upstream module's output
-        self.index = index
+        self.activation_func = afunc
         self.name = "Module-"+str(self.index)
         self.build()
 
@@ -232,7 +246,7 @@ class Gannmodule():
                     name=mona+'-wgt',trainable=True)  # True = default for trainable anyway
         self.biases = tf.Variable(np.random.uniform(-.1, .1, size=n),
                     name=mona+'-bias', trainable=True)  # First bias vector
-        self.output = tf.nn.relu(tf.matmul(self.input,self.weights)+self.biases,name=mona+'-out')
+        self.output = self.activation_func(tf.matmul(self.input,self.weights)+self.biases,name=mona+'-out')
         self.ann.add_module(self)
 
     def getvar(self, type):  # type = (in,out,wgt,bias)
@@ -291,9 +305,9 @@ class Caseman():
 def autoex(epochs=300,nbits=4,lrate=0.03,showint=100,mbs=None,vfrac=0.1,tfrac=0.1,vint=100,sm=False,bestk=None):
     size = 2**nbits
     mbs = mbs if mbs else size
-    case_generator = (lambda : TFT.gen_all_one_hot_cases(2**nbits))
+    case_generator = (lambda: TFT.gen_all_one_hot_cases(2**nbits))
     cman = Caseman(cfunc=case_generator,vfrac=vfrac,tfrac=tfrac)
-    ann = Gann(dims=[size,nbits,size],cman=cman,lrate=lrate,showint=showint,mbs=mbs,vint=vint,softmax=sm)
+    ann = Gann(dims=[size,nbits,size],cman=cman,afunc=tf.nn.relu,lrate=lrate,showint=showint,mbs=mbs,vint=vint,softmax=sm)
     ann.gen_probe(0,'wgt',('hist','avg'))  # Plot a histogram and avg of the incoming weights to module 0.
     ann.gen_probe(1,'out',('avg','max'))  # Plot average and max value of module 1's output vector
     ann.add_grabvar(0,'wgt') # Add a grabvar (to be displayed in its own matplotlib window).
