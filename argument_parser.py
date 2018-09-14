@@ -1,4 +1,5 @@
 import argparse
+import tensorflow as tf
 import tflowtools as TFT
 
 class argument_parser():
@@ -13,20 +14,22 @@ class argument_parser():
                 help="activation function for hidden layers")
         parser.add_argument("--ofunc", required=True, \
                 help="activation function of output layer")
-        # parser.add_argument("-c", "--cfunc", required=True, \
-        # help="cost function / loss function")
-        # parser.add_argument("-l", "--lrate", type=float, required=True, \
-        # help="learning rate")
+        parser.add_argument("-c", "--cfunc", required=True, \
+                help="cost function / loss function")
+        parser.add_argument("-l", "--lrate", type=float, required=True, \
+                help="learning rate")
         # parser.add_argument("-w", "--wrange", nargs=2, type=float, required=True, \
         # help="lower and higher bound for random initialization of weights")
         # parser.add_argument("-o", "--optimizer", required=True, \
         # help="optimizer to use")
         # parser.add_argument("--casefrac", required=True, \
         # help="set fraction of data to use for training validation and testing")
-        # parser.add_argument("--valfrac", required=True)
-        # parser.add_argument("--testfrac", required=True)
-        # parser.add_argument("--vint", required=True, \
-        # help="number of training minibatches to use between each validation test")
+        parser.add_argument("--vfrac", type=float, required=True, \
+                help="validation fraction")
+        parser.add_argument("--tfrac", type=float, required=True, \
+                help="test fraction")
+        parser.add_argument("--vint", type=int, required=True, \
+                help="number of training minibatches to use between each validation test")
         # parser.add_argument("--minibsize", required=True, \
         # help="number of cases in minibatch")
         # parser.add_argument("--mapbsize", required=True, \
@@ -43,33 +46,77 @@ class argument_parser():
         # help="list of bias vectors to be visualized at the end or run")
         self.args = parser.parse_args()
 
-    def clean_input(self):
-        # cleans input from argparser
-        pass
+    def dims(self):
+        print("dimensions:", self.args.dims)
+        return self.args.dims
 
-    def data_source(self):
-        # returns a list of inputs and targets
-        data_set = []
-
-        if self.args.datasource[-4:] == ".txt":
-            with open(self.args.datasource) as file:
-                data_set_line = []
-                for line in file.readlines():
-                    for element in line.split(','):
-                        data_set_line.append(float(element))
-                data_set.append(data_set_line)
+    def afunc(self):
+        print("activation function:", self.args.afunc)
+        dict = {"sigmoid": tf.nn.sigmoid, "relu": tf.nn.relu, "relu6": tf.nn.relu6, "tanh": tf.nn.tanh}
+        if self.args.afunc in dict.keys():
+            return dict[self.args.afunc]
         else:
-            if self.args.datasourse == "parity":
-                data_set = TFT.gen_all_parity_cases()
-            elif self.args.datasourse == "symmetry":
-                data_set = TFT.gen_symvect_cases()
-            elif self.args.datasourse == "one_hot":
-                data_set = TFT.gen_all_one_hot_cases()
-            elif self.args.datasourse == "auto_dense":
-                data_set = TFT.gen_dense_autoencoder_cases()
-            elif self.args.datasourse == "bit_counter":
-                data_set = TFT.gen_vector_count_cases()
-            elif self.args.datasourse == "segment_counter":
-                data_set = TFT.gen_segmented_vector_cases()
+            print("'", self.args.afunc, "' is invalid for argument --afunc", sep='')
+            print("Valid arguments are:", dict.keys())
+            quit()
 
-        return data_set
+    def ofunc(self):
+        print("output activation function:", self.args.ofunc)
+        dict = {"linear": None, "softmax": tf.nn.softmax, "sigmoid": tf.nn.sigmoid}
+        if self.args.ofunc in dict.keys():
+            return dict[self.args.ofunc]
+        else:
+            print("'", self.args.ofunc, "' is invalid for argument --ofunc", sep='')
+            print("Valid arguments are:", dict.keys())
+            quit()
+
+    def cfunc(self):
+        print("cost / lostt function:", self.args.cfunc)
+        dict = {"mse": tf.losses.mean_squared_error, "softmax_ce": tf.losses.softmax_cross_entropy}
+        if self.args.cfunc in dict.keys():
+            return dict[self.args.cfunc]
+        else:
+            print("'", self.args.cfunc, "' is invalid for argument --cfunc", sep='')
+
+    def lrate(self):
+        print("learning rate:", self.args.lrate)
+        return self.args.lrate
+
+    def vfrac(self):
+        print("validation fraction:", self.args.vfrac)
+        return self.args.vfrac
+
+    def tfrac(self):
+        print("test fraction:", self.args.tfrac)
+        return self.args.tfrac
+
+    def vint(self):
+        print("validation intervals:", self.args.vint)
+        return self.args.vint
+
+    # def data_source(self):
+    #     # returns a list of inputs and targets
+    #     data_set = []
+    #
+    #     if self.args.datasource[-4:] == ".txt":
+    #         with open(self.args.datasource) as file:
+    #             data_set_line = []
+    #             for line in file.readlines():
+    #                 for element in line.split(','):
+    #                     data_set_line.append(float(element))
+    #             data_set.append(data_set_line)
+    #     else:
+    #         if self.args.datasourse == "parity":
+    #             data_set = TFT.gen_all_parity_cases()
+    #         elif self.args.datasourse == "symmetry":
+    #             data_set = TFT.gen_symvect_cases()
+    #         elif self.args.datasourse == "one_hot":
+    #             data_set = TFT.gen_all_one_hot_cases()
+    #         elif self.args.datasourse == "auto_dense":
+    #             data_set = TFT.gen_dense_autoencoder_cases()
+    #         elif self.args.datasourse == "bit_counter":
+    #             data_set = TFT.gen_vector_count_cases()
+    #         elif self.args.datasourse == "segment_counter":
+    #             data_set = TFT.gen_segmented_vector_cases()
+    #
+    #     return data_set

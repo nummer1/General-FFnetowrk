@@ -8,15 +8,16 @@ import tflowtools as TFT
 # This is the original GANN, which has been improved in the file gann.py
 
 class Gann():
-    def __init__(self, dims, cman, afunc, lrate=.1, showint=None, mbs=10, vint=None, softmax=False):
+    def __init__(self, dims, cman, afunc, ofunc, cfunc, lrate, showint=None, mbs=10, vint=None):
         self.layer_sizes = dims  # Sizes of each layer of neurons
         self.caseman = cman
         self.activation_func = afunc
+        self.activation_outputs = ofunc
+        self.loss_function = cfunc
         self.learning_rate = lrate
         self.show_interval = showint  # Frequency of showing grabbed variables
         self.minibatch_size = mbs
         self.validation_interval = vint
-        self.softmax_outputs = softmax
         self.global_training_step = 0  # Enables coherent data-storage during extra training runs (see runmore).
         self.grabvars = []  # Variables to be monitored (by gann code) during a run.
         self.grabvar_figures = []  # One matplotlib figure for each grabvar
@@ -51,7 +52,8 @@ class Gann():
             invar = gmod.output
             insize = gmod.outsize
         self.output = gmod.output  # Output of last module is output of whole network
-        if self.softmax_outputs: self.output = tf.nn.softmax(self.output)
+        if self.activation_outputs:
+            self.output = self.activation_outputs(self.output)
         self.target = tf.placeholder(tf.float64, shape=(None, gmod.outsize), name='Target')
         self.configure_learning()
 
@@ -59,7 +61,8 @@ class Gann():
     # derivatives of the error function with respect to each component of each variable, i.e. each weight
     # of the weight array.
     def configure_learning(self):
-        self.error = tf.reduce_mean(tf.square(self.target - self.output), name='MSE')
+        # self.error = tf.reduce_mean(tf.square(self.target - self.output), name='MSE')
+        self.error = self.loss_function(self.target, self.output)
         self.predictor = self.output  # Simple prediction runs will request the value of output neurons
         # Defining the training operator
         optimizer = tf.train.GradientDescentOptimizer(self.learning_rate)
