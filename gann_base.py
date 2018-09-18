@@ -8,13 +8,15 @@ import tflowtools as TFT
 # This is the original GANN, which has been improved in the file gann.py
 
 class Gann():
-    def __init__(self, dims, cman, afunc, ofunc, cfunc, lrate, showint=None, mbs=10, vint=None):
+    def __init__(self, dims, cman, afunc, ofunc, cfunc, optimizer, lrate, wrange, vint, mbs, showint=None):
         self.layer_sizes = dims  # Sizes of each layer of neurons
         self.caseman = cman
         self.activation_func = afunc
         self.activation_outputs = ofunc
         self.loss_function = cfunc
+        self.optimizer_class = optimizer
         self.learning_rate = lrate
+        self.weight_range = wrange
         self.show_interval = showint  # Frequency of showing grabbed variables
         self.minibatch_size = mbs
         self.validation_interval = vint
@@ -48,7 +50,7 @@ class Gann():
         insize = num_inputs
         # Build all of the modules
         for i, outsize in enumerate(self.layer_sizes[1:]):
-            gmod = Gannmodule(self, i, invar, insize, outsize, self.activation_func)
+            gmod = Gannmodule(self, i, invar, insize, outsize, self.activation_func, self.weight_range)
             invar = gmod.output
             insize = gmod.outsize
         self.output = gmod.output  # Output of last module is output of whole network
@@ -65,7 +67,7 @@ class Gann():
         self.error = self.loss_function(self.target, self.output)
         self.predictor = self.output  # Simple prediction runs will request the value of output neurons
         # Defining the training operator
-        optimizer = tf.train.GradientDescentOptimizer(self.learning_rate)
+        optimizer = self.optimizer_class(self.learning_rate)
         self.trainer = optimizer.minimize(self.error, name='Backprop')
 
     def do_training(self, sess, cases, epochs=100, continued=False):
@@ -232,24 +234,25 @@ class Gann():
 
 # A general ann module = a layer of neurons (the output) plus its incoming weights and biases.
 class Gannmodule():
-    def __init__(self, ann, index, invariable, insize, outsize, afunc):
+    def __init__(self, ann, index, invariable, insize, outsize, afunc, wrange):
         self.ann = ann
         self.index = index
         self.input = invariable  # Either the gann's input variable or the upstream module's output
         self.insize = insize  # Number of neurons feeding into this module
         self.outsize = outsize  # Number of neurons in this module
         self.activation_func = afunc
+        self.wrange = wrange
         self.name = "Module-"+str(self.index)
         self.build()
 
     def build(self):
         mona = self.name
         n = self.outsize
-        self.weights = tf.Variable(np.random.uniform(-.1, .1, size=(self.insize,n)),
+        self.weights = tf.Variable(np.random.uniform(self.wrange[0], self.wrange[1], size=(self.insize, n)),
                     name=mona+'-wgt',trainable=True)  # True = default for trainable anyway
-        self.biases = tf.Variable(np.random.uniform(-.1, .1, size=n),
+        self.biases = tf.Variable(np.random.uniform(self.wrange[0], self.wrange[1], size=n),
                     name=mona+'-bias', trainable=True)  # First bias vector
-        self.output = self.activation_func(tf.matmul(self.input,self.weights)+self.biases,name=mona+'-out')
+        self.output = self.activation_func(tf.matmul(self.input, self.weights) + self.biases, name=mona+'-out')
         self.ann.add_module(self)
 
     def getvar(self, type):  # type = (in,out,wgt,bias)
@@ -276,11 +279,11 @@ class Gannmodule():
 # a machine-learning system
 
 class Caseman():
-    def __init__(self, cfunc, vfrac=0, tfrac=0):
+    def __init__(self, cfunc, vfrac, tfrac, casefrac):
         self.casefunc = cfunc
-        self.validation_fraction = vfrac
-        self.test_fraction = tfrac
-        self.training_fraction = 1 - (vfrac + tfrac)
+        self.validation_fraction = vfrac * casefrac
+        self.test_fraction = tfrac * casefrac
+        self.training_fraction = (1 - (vfrac + tfrac)) * casefrac
         self.generate_cases()
         self.organize_cases()
 
