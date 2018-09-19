@@ -1,4 +1,5 @@
 import argparse
+import re
 import tensorflow as tf
 import tflowtools as TFT
 
@@ -8,8 +9,8 @@ class argument_parser():
         parser = argparse.ArgumentParser()
         parser.add_argument("-d", "--dims", nargs='+', type=int, required=True,
                 help="dimensions of the neural network")
-        # parser.add_argument("-s", "--source", required=True,
-        #         help="data source")
+        parser.add_argument("-s", "--source", required=True,
+                help="data source")
         parser.add_argument("-a", "--afunc", required=True, \
                 help="activation function for hidden layers")
         parser.add_argument("--ofunc", required=True, \
@@ -49,6 +50,30 @@ class argument_parser():
     def dims(self):
         print("dimensions:", self.args.dims)
         return self.args.dims
+
+    def source(self):
+        print("source:", self.args.source)
+        data_set = []
+        if self.args.source[-4:] == ".txt":
+            with open(self.args.source) as file:
+                data = list(map(lambda x: re.split("[;,]", x), file.readlines()))
+            max_d = max(map(lambda x: int(x[-1]), data))
+            for element in data:
+                data_set.append([list(map(float, element[:-1])), TFT.int_to_one_hot(int(element[-1])-1, max_d)])
+            # with open(self.args.source) as file:
+            #     for line in file.readlines():
+            #         data_set.append()
+        # legal text source: wine.txt, yeast.txt, glass.txt,
+        # legal function sources: parity, symmetry, autoencoder, bitcounter, segmentcounter
+        # legal MNIST sources:
+        # TFT.gen_all_parity_cases(length)
+        # TFT.gen_symvect_cases(length)
+        # TFT.gen_all_one_hot_cases(length)
+        # TFT.gen_dense_autoencoder_cases(length, dens_range(2))
+        # TFT.gen_vector_count_cases(length)
+        # TFT.gen_segmented_vector_cases(size, count, minsegs, maxsegs, poptargs)
+        print(data_set)
+        return data_set
 
     def afunc(self):
         print("activation function:", self.args.afunc)

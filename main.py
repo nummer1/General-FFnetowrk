@@ -15,14 +15,13 @@ import tflowtools as TFT
 def main():
     parser = argument_parser.argument_parser()
     parser.parse()
-    cfunc = (lambda : TFT.gen_all_one_hot_cases(2**4))
     # (self, cfunc, vfrac, tfrac, casefrac)
-    caseman = gann_base.Caseman(cfunc, parser.vfrac(), parser.tfrac(), parser.casefrac())
+    caseman = gann_base.Caseman(parser.source(), parser.vfrac(), parser.tfrac(), parser.casefrac())
     # (self, dims, cman, afunc, ofunc, cfunc, optimizer, lrate, wrange, vint, mbs, showint=None)
     gann = gann_base.Gann(parser.dims(), caseman, parser.afunc(), parser.ofunc(), parser.cfunc(), parser.optimizer(),
                 parser.lrate(), parser.wrange(), parser.vint(), parser.mbs(),
                 showint=None)
-    gann.run(epochs=20000, sess=None, continued=False, bestk=1)
+    gann.run(steps=parser.steps(), sess=None, continued=False, bestk=1)
     TFT.fireup_tensorboard('probeview')
 
 main()

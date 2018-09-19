@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 import math
+import random
 import matplotlib.pyplot as PLT
 import tflowtools as TFT
 
@@ -70,29 +71,25 @@ class Gann():
         optimizer = self.optimizer_class(self.learning_rate)
         self.trainer = optimizer.minimize(self.error, name='Backprop')
 
-    def do_training(self, sess, cases, epochs=100, continued=False):
+    def do_training(self, sess, cases, steps, continued=False):
         if not(continued): self.error_history = []
-        for i in range(epochs):
+        for i in range(steps):
             error = 0
             step = self.global_training_step + i
             gvars = [self.error] + self.grabvars
             mbs = self.minibatch_size
-            ncases = len(cases)
-            nmb = math.ceil(ncases/mbs)
-            for cstart in range(0, ncases, mbs):  # Loop through cases, one minibatch at a time.
-                cend = min(ncases, cstart + mbs)
-                minibatch = cases[cstart:cend]
-                inputs = [c[0] for c in minibatch]
-                targets = [c[1] for c in minibatch]
-                feeder = {self.input: inputs, self.target: targets}
-                _,grabvals,_ = self.run_one_step([self.trainer], gvars, self.probes,session=sess,
-                            feed_dict=feeder, step=step, show_interval=self.show_interval)
-                error += grabvals[0]
-            self.error_history.append((step, error/nmb))
-            self.consider_validation_testing(step,sess)
-        self.global_training_step += epochs
+            minibatch = random.sample(list(cases), mbs)  # randomly selected of size mbs
+            inputs = [c[0] for c in minibatch]
+            targets = [c[1] for c in minibatch]
+            feeder = {self.input: inputs, self.target: targets}
+            _, grabvals, _ = self.run_one_step([self.trainer], gvars, self.probes, session=sess,
+                        feed_dict=feeder, step=step, show_interval=self.show_interval)
+            error += grabvals[0]
+            self.error_history.append((step, error))
+            self.consider_validation_testing(step, sess)
+        self.global_training_step += steps
         TFT.plot_training_history(self.error_history, self.validation_history,
-                    xtitle="Epoch", ytitle="Error", title="", fig=not(continued))
+                    xtitle="Step", ytitle="Error", title="", fig=not(continued))
 
     # bestk = 1 when you're doing a classification task and the targets are one-hot vectors.
     # This will invoke the gen_match_counter error function.
@@ -126,23 +123,23 @@ class Gann():
         correct = tf.nn.in_top_k(tf.cast(logits,tf.float32), labels, k)  # Return number of correct outputs
         return tf.reduce_sum(tf.cast(correct, tf.int32))
 
-    def training_session(self, epochs, sess=None, dir="probeview", continued=False):
+    def training_session(self, steps, sess=None, dir="probeview", continued=False):
         session = sess if sess else TFT.gen_initialized_session(dir=dir)
         self.current_session = session
         self.roundup_probes()  # this call must come AFTER the session is created, else graph is not in tensorboard.
-        self.do_training(session, self.caseman.get_training_cases(), epochs, continued=continued)
+        self.do_training(session, self.caseman.get_training_cases(), steps, continued=continued)
 
     def testing_session(self, sess, bestk=None):
         cases = self.caseman.get_testing_cases()
         if len(cases) > 0:
             self.do_testing(sess, cases, msg='Final Testing', bestk=bestk)
 
-    def consider_validation_testing(self, epoch, sess):
-        if self.validation_interval and (epoch % self.validation_interval == 0):
+    def consider_validation_testing(self, step, sess):
+        if self.validation_interval and (step % self.validation_interval == 0):
             cases = self.caseman.get_validation_cases()
             if len(cases) > 0:
                 error = self.do_testing(sess, cases, msg='Validation Testing')
-                self.validation_history.append((epoch,error))
+                self.validation_history.append((step, error))
 
     # Do testing (i.e. calc error without learning) on the training set.
     def test_on_trains(self, sess, bestk=None):
@@ -174,9 +171,9 @@ class Gann():
             else:
                 print(v, end="\n\n")
 
-    def run(self, epochs=100, sess=None, continued=False, bestk=None):
+    def run(self, steps=100, sess=None, continued=False, bestk=None):
         PLT.ion()
-        self.training_session(epochs, sess=sess, continued=continued)
+        self.training_session(steps, sess=sess, continued=continued)
         self.test_on_trains(sess=self.current_session, bestk=bestk)
         self.testing_session(sess=self.current_session, bestk=bestk)
         self.close_current_session(view=False)
@@ -186,9 +183,9 @@ class Gann():
     # left off after the last call to run (or runmore).  Use of the "continued" parameter (along with
     # global_training_step) allows easy updating of the error graph to account for the additional run(s).
 
-    def runmore(self, epochs=100, bestk=None):
+    def runmore(self, steps=100, bestk=None):
         self.reopen_current_session()
-        self.run(epochs, sess=self.current_session, continued=True, bestk=bestk)
+        self.run(steps, sess=self.current_session, continued=True, bestk=bestk)
 
     #   ******* Saving GANN Parameters (weights and biases) *******************
     # This is useful when you want to use "runmore" to do additional training on a network.
@@ -279,16 +276,12 @@ class Gannmodule():
 # a machine-learning system
 
 class Caseman():
-    def __init__(self, cfunc, vfrac, tfrac, casefrac):
-        self.casefunc = cfunc
+    def __init__(self, cases, vfrac, tfrac, casefrac):
+        self.cases = cases
         self.validation_fraction = vfrac * casefrac
         self.test_fraction = tfrac * casefrac
         self.training_fraction = (1 - (vfrac + tfrac)) * casefrac
-        self.generate_cases()
         self.organize_cases()
-
-    def generate_cases(self):
-        self.cases = self.casefunc()  # Run the case generator.  Case = [input-vector, target-vector]
 
     def organize_cases(self):
         ca = np.array(self.cases)
@@ -308,7 +301,7 @@ class Caseman():
 
 # After running this, open a Tensorboard (Go to localhost:6006 in your Chrome Browser) and check the
 # 'scalar', 'distribution' and 'histogram' menu options to view the probed variables.
-def autoex(epochs=300,nbits=4,lrate=0.03,showint=100,mbs=None,vfrac=0.1,tfrac=0.1,vint=100,sm=False,bestk=None):
+def autoex(steps=300,nbits=4,lrate=0.03,showint=100,mbs=None,vfrac=0.1,tfrac=0.1,vint=100,sm=False,bestk=None):
     size = 2**nbits
     mbs = mbs if mbs else size
     case_generator = (lambda: TFT.gen_all_one_hot_cases(2**nbits))
@@ -317,15 +310,15 @@ def autoex(epochs=300,nbits=4,lrate=0.03,showint=100,mbs=None,vfrac=0.1,tfrac=0.
     ann.gen_probe(0,'wgt',('hist','avg'))  # Plot a histogram and avg of the incoming weights to module 0.
     ann.gen_probe(1,'out',('avg','max'))  # Plot average and max value of module 1's output vector
     ann.add_grabvar(0,'wgt') # Add a grabvar (to be displayed in its own matplotlib window).
-    ann.run(epochs,bestk=bestk)
-    ann.runmore(epochs*2,bestk=bestk)
+    ann.run(steps, bestk=bestk)
+    ann.runmore(steps*2,bestk=bestk)
     TFT.fireup_tensorboard('probeview')
     return ann
 
-def countex(epochs=5000,nbits=15,ncases=500,lrate=0.5,showint=500,mbs=20,vfrac=0.1,tfrac=0.1,vint=200,sm=True,bestk=1):
+def countex(steps=5000,nbits=15,ncases=500,lrate=0.5,showint=500,mbs=20,vfrac=0.1,tfrac=0.1,vint=200,sm=True,bestk=1):
     case_generator = (lambda: TFT.gen_vector_count_cases(ncases,nbits))
     cman = Caseman(cfunc=case_generator, vfrac=vfrac, tfrac=tfrac)
     ann = Gann(dims=[nbits, nbits*3, nbits+1], cman=cman, lrate=lrate, showint=showint, mbs=mbs, vint=vint, softmax=sm)
-    ann.run(epochs,bestk=bestk)
+    ann.run(steps,bestk=bestk)
     TFT.fireup_tensorboard('probeview')
     return ann
