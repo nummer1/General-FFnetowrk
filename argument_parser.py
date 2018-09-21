@@ -1,10 +1,15 @@
 import argparse
 import re
+import numpy
 import tensorflow as tf
 import tflowtools as TFT
 
 class argument_parser():
     # parses arguments given on command line
+
+    def __init__(self):
+        self.data_set = []
+
     def parse(self):
         parser = argparse.ArgumentParser()
         parser.add_argument("-d", "--dims", nargs='+', type=int, required=True,
@@ -49,36 +54,70 @@ class argument_parser():
 
     def dims(self):
         print("dimensions:", self.args.dims)
+        if self.data_set == []:
+            print("source() must be called before dims() is called")
+            quit()
+        self.args.dims = [len(self.data_set[0][0])] + self.args.dims + [len(self.data_set[0][1])]
         return self.args.dims
 
     def source(self):
+        # def normalize(input):
+        #     input = numpy.array(input)
+        #     min_arr = numpy.min(input, axis=0)
+        #     max_arr = numpy.max(input, axis=0)
+        #     for element in input:
+        #         for i in range(len(element)):
+        #             (element[i] - min_arr[i])/(max_arr[i] - min_arr[i])
         print("source:", self.args.source)
         data_set = []
         if self.args.source[-4:] == ".txt":
             with open(self.args.source) as file:
                 data = list(map(lambda x: re.split("[;,]", x), file.readlines()))
+                data = list(map(lambda x: map(float, x), data))
             max_d = max(map(lambda x: int(x[-1]), data))
             for element in data:
-                data_set.append([list(map(float, element[:-1])), TFT.int_to_one_hot(int(element[-1])-1, max_d)])
-            # with open(self.args.source) as file:
-            #     for line in file.readlines():
-            #         data_set.append()
+                input = element[:-1]
+                target = TFT.int_to_one_hot(int(element[-1])-1, max_d)
+                data_set.append([input, target])
+        elif self.args.source == "parity":
+            data_set = TFT.gen_all_parity_cases(10)
+        elif self.args.source == "symmetry":
+            vecs = TFT.gen_symvect_cases(101, 2000)
+            inputs = list(map(lambda x: x[:-1], vecs))
+            targets = list(map(lambda x: TFT.int_to_one_hot(x[-1], 2), vecs))
+            data_set = zip(inputs, targets)
+        elif self.args.source == "auto_onehot":
+            data_set = TFT.gen_all_one_hot_cases(100)
+        elif self.args.source == "auto_dense":
+            data_set = TFT.gen_dense_autoencoder_cases(2000, 100)
+        elif self.args.source == "bitcounter":
+            data_set = TFT.gen_vector_count_cases(500, 15)
+        elif self.args.source == "segmentcounter":
+            data_set = TFT.gen_segmented_vector_cases(25, 1000, 0, 8)
+        # elif:
+        #    MNIST!!
+        #    pass
         # legal text source: wine.txt, yeast.txt, glass.txt,
         # legal function sources: parity, symmetry, autoencoder, bitcounter, segmentcounter
-        # legal MNIST sources:
+        # legal MNIST sources: in mnist/mnist_basics.py
         # TFT.gen_all_parity_cases(length)
         # TFT.gen_symvect_cases(length)
         # TFT.gen_all_one_hot_cases(length)
         # TFT.gen_dense_autoencoder_cases(length, dens_range(2))
         # TFT.gen_vector_count_cases(length)
         # TFT.gen_segmented_vector_cases(size, count, minsegs, maxsegs, poptargs)
-        print(data_set)
+        if data_set == []:
+            print(self.args.source, " is illegal for argument --source")
+            print("Legal values are: <filenme>.txt, parity, symmetry, \
+                        auto_onehot, auto_dense, bitcounter, segmentcounter", sep="")
+            quit()
+        self.data_set = data_set
         return data_set
 
     def afunc(self):
         print("activation function:", self.args.afunc)
         dict = {"sigmoid": tf.nn.sigmoid, "relu": tf.nn.relu, "relu6": tf.nn.relu6, "tanh": tf.nn.tanh}
-        if self.args.afunc in dict.keys():
+        if self.args.afunc in dict:
             return dict[self.args.afunc]
         else:
             print("'", self.args.afunc, "' is invalid for argument --afunc", sep='')
@@ -88,7 +127,7 @@ class argument_parser():
     def ofunc(self):
         print("output activation function:", self.args.ofunc)
         dict = {"linear": None, "softmax": tf.nn.softmax, "sigmoid": tf.nn.sigmoid}
-        if self.args.ofunc in dict.keys():
+        if self.args.ofunc in dict:
             return dict[self.args.ofunc]
         else:
             print("'", self.args.ofunc, "' is invalid for argument --ofunc", sep='')
@@ -96,22 +135,24 @@ class argument_parser():
             quit()
 
     def cfunc(self):
-        print("cost / lostt function:", self.args.cfunc)
+        print("cost / loss function:", self.args.cfunc)
         dict = {"mse": tf.losses.mean_squared_error, "softmax_ce": tf.losses.softmax_cross_entropy}
-        if self.args.cfunc in dict.keys():
+        if self.args.cfunc in dict:
             return dict[self.args.cfunc]
         else:
             print("'", self.args.cfunc, "' is invalid for argument --cfunc", sep='')
+            print("Valid arguments are:", dict.keys())
             quit()
 
     def optimizer(self):
         print("optimizer:", self.args.optimizer)
         dict = {"gd": tf.train.GradientDescentOptimizer, "adagrad": tf.train.AdagradOptimizer, "adam": tf.train.AdamOptimizer,
                 "rmsprop": tf.train.RMSPropOptimizer}
-        if self.args.optimizer in dict.keys():
+        if self.args.optimizer in dict:
             return dict[self.args.optimizer]
         else:
             print("'", self.args.optimizer, "' is invalid for argument --optimizer", sep="")
+            print("Valid arguments are:", dict.keys())
             quit()
 
     def lrate(self):
@@ -157,30 +198,3 @@ class argument_parser():
     def steps(self):
         print("steps:", self.args.steps)
         return self.args.steps
-
-    # def data_source(self):
-    #     # returns a list of inputs and targets
-    #     data_set = []
-    #
-    #     if self.args.datasource[-4:] == ".txt":
-    #         with open(self.args.datasource) as file:
-    #             data_set_line = []
-    #             for line in file.readlines():
-    #                 for element in line.split(','):
-    #                     data_set_line.append(float(element))
-    #             data_set.append(data_set_line)
-    #     else:
-    #         if self.args.datasourse == "parity":
-    #             data_set = TFT.gen_all_parity_cases()
-    #         elif self.args.datasourse == "symmetry":
-    #             data_set = TFT.gen_symvect_cases()
-    #         elif self.args.datasourse == "one_hot":
-    #             data_set = TFT.gen_all_one_hot_cases()
-    #         elif self.args.datasourse == "auto_dense":
-    #             data_set = TFT.gen_dense_autoencoder_cases()
-    #         elif self.args.datasourse == "bit_counter":
-    #             data_set = TFT.gen_vector_count_cases()
-    #         elif self.args.datasourse == "segment_counter":
-    #             data_set = TFT.gen_segmented_vector_cases()
-    #
-    #     return data_set
