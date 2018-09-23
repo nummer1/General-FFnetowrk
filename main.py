@@ -5,8 +5,8 @@ import tflowtools as TFT
 
 
 # TODO: fix bestk in gann_base.do_testing
-# TODO: fix input and output layer dimensions
 # TODO: optimizers needs arguments
+# TODO: must normalize input from .txt files
 
 # NOTE: use softmax for ofunc and cross_entropy as loss for classification
 # NOTE: use sigmoid or tanh for ofunc and MSE for regression
@@ -22,6 +22,7 @@ def main():
                 parser.lrate(), parser.wrange(), parser.vint(), parser.mbs(),
                 showint=None)
     gann.run(steps=parser.steps(), sess=None, continued=False, bestk=1)
+    TFT.PLT.show()
     TFT.fireup_tensorboard('probeview')
 
 main()

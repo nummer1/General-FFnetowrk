@@ -38,8 +38,9 @@ class argument_parser():
                 help="number of training minibatches to use between each validation test")
         parser.add_argument("--mbs", type=int, required=True, \
                 help="number of cases in a minibatch")
-        # parser.add_argument("--mapbs", required=True, \
-        # help="number of training cases to be used for a map test. Zero indicates no map test")
+        # TODO: NOT USED
+        parser.add_argument("--mapbs", type=int, required=True, \
+                help="number of training cases to be used for a map test. Zero indicates no map test")
         parser.add_argument("--steps", type=int, required=True, \
                 help="total number of minibatches to be run through the system during training")
         # parser.add_argument("--maplayers", required=True, \
@@ -85,7 +86,7 @@ class argument_parser():
             vecs = TFT.gen_symvect_cases(101, 2000)
             inputs = list(map(lambda x: x[:-1], vecs))
             targets = list(map(lambda x: TFT.int_to_one_hot(x[-1], 2), vecs))
-            data_set = zip(inputs, targets)
+            data_set = list(zip(inputs, targets))
         elif self.args.source == "auto_onehot":
             data_set = TFT.gen_all_one_hot_cases(100)
         elif self.args.source == "auto_dense":
@@ -198,3 +199,7 @@ class argument_parser():
     def steps(self):
         print("steps:", self.args.steps)
         return self.args.steps
+
+    def mapbs(self):
+        print("map batch size:", self.args.mapbs)
+        return self.args.mapbs

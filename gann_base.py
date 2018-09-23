@@ -88,6 +88,7 @@ class Gann():
             self.error_history.append((step, error))
             self.consider_validation_testing(step, sess)
         self.global_training_step += steps
+        print(len(self.error_history), len(self.validation_history))
         TFT.plot_training_history(self.error_history, self.validation_history,
                     xtitle="Step", ytitle="Error", title="", fig=not(continued))
 
