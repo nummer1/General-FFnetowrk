@@ -101,6 +101,8 @@ class Gann():
         targets = [c[1] for c in cases]
         feeder = {self.input: inputs, self.target: targets}
         self.test_func = self.error
+        for v in targets:
+            a = [TFT.one_hot_to_int(list(v)) for v in targets]
         if bestk is not None:
             self.test_func = self.gen_match_counter(self.predictor, [TFT.one_hot_to_int(list(v)) for v in targets], k=bestk)
         testres, grabvals, _ = self.run_one_step(self.test_func, self.grabvars, self.probes,

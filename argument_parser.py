@@ -9,6 +9,7 @@ class argument_parser():
 
     def __init__(self):
         self.data_set = []
+        self.source_is_called = False
 
     def parse(self):
         parser = argparse.ArgumentParser()
@@ -43,8 +44,8 @@ class argument_parser():
                 help="number of training cases to be used for a map test. Zero indicates no map test")
         parser.add_argument("--steps", type=int, required=True, \
                 help="total number of minibatches to be run through the system during training")
-        # parser.add_argument("--maplayers", required=True, \
-        # help="the layers to be visualized during map test")
+        parser.add_argument("--maplayers", nargs='+', type=int, required=True, \
+                help="the layers to be visualized during map test")
         # parser.add_argument("--mapdend", nargs='+', type=int, required=True, \
         # help="list of layers whose activation layers will be used to produce dendograms")
         # parser.add_argument("--dispw", required=True, \
@@ -54,14 +55,15 @@ class argument_parser():
         self.args = parser.parse_args()
 
     def dims(self):
-        print("dimensions:", self.args.dims)
-        if self.data_set == []:
+        if not self.source_is_called:
             print("source() must be called before dims() is called")
             quit()
         self.args.dims = [len(self.data_set[0][0])] + self.args.dims + [len(self.data_set[0][1])]
+        print("dimensions:", self.args.dims)
         return self.args.dims
 
     def source(self):
+        self.source_is_called = True
         # def normalize(input):
         #     input = numpy.array(input)
         #     min_arr = numpy.min(input, axis=0)
@@ -203,3 +205,14 @@ class argument_parser():
     def mapbs(self):
         print("map batch size:", self.args.mapbs)
         return self.args.mapbs
+
+    def maplayers(self):
+        print("maplayers to visualize", self.args.maplayers)
+        if not self.source_is_called:
+            print("source must be called before maplayers is called")
+            quit()
+        for layer in self.args.maplayers:
+            if layer > len(self.args.dims) - 2:
+                print("maplayer ot visualize is larger than dimension")
+                quit()
+        return self.args.maplayers
