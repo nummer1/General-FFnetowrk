@@ -44,14 +44,15 @@ class argument_parser():
                 help="number of training cases to be used for a map test. Zero indicates no map test")
         parser.add_argument("--steps", type=int, required=True, \
                 help="total number of minibatches to be run through the system during training")
-        parser.add_argument("--maplayers", nargs='+', type=int, required=True, \
+        # TODO: NOT USED
+        parser.add_argument("--maplayers", nargs='*', type=int, required=True, \
                 help="the layers to be visualized during map test")
         # parser.add_argument("--mapdend", nargs='+', type=int, required=True, \
         # help="list of layers whose activation layers will be used to produce dendograms")
-        # parser.add_argument("--dispw", required=True, \
-        # help="list of the weight arrays to be visualized at the end of run")
-        # parser.add_argument("--dispb", required=True, \
-        # help="list of bias vectors to be visualized at the end or run")
+        parser.add_argument("--dispw", nargs='*', type=int, required=True, \
+                help="list of the weight matrices to be visualized at the end of run")
+        parser.add_argument("--dispb", nargs='*', type=int, required=True, \
+                help="list of bias matrices to be visualized at the end or run")
         self.args = parser.parse_args()
 
     def dims(self):
@@ -63,20 +64,24 @@ class argument_parser():
         return self.args.dims
 
     def source(self):
+        def normalize(cases):
+            input = [c[0] for c in cases]
+            target = [c[1] for c in cases]
+            input = numpy.array(input)
+            min_arr = numpy.min(input, axis=0)
+            max_arr = numpy.max(input, axis=0)
+            for element in input:
+                for i, e in enumerate(element):
+                    element[i] = (e - min_arr[i])/(max_arr[i] - min_arr[i])
+            return list(zip(input, target))
+
         self.source_is_called = True
-        # def normalize(input):
-        #     input = numpy.array(input)
-        #     min_arr = numpy.min(input, axis=0)
-        #     max_arr = numpy.max(input, axis=0)
-        #     for element in input:
-        #         for i in range(len(element)):
-        #             (element[i] - min_arr[i])/(max_arr[i] - min_arr[i])
         print("source:", self.args.source)
         data_set = []
         if self.args.source[-4:] == ".txt":
             with open(self.args.source) as file:
                 data = list(map(lambda x: re.split("[;,]", x), file.readlines()))
-                data = list(map(lambda x: map(float, x), data))
+                data = list(map(lambda x: list(map(float, x)), data))
             max_d = max(map(lambda x: int(x[-1]), data))
             for element in data:
                 input = element[:-1]
@@ -114,6 +119,8 @@ class argument_parser():
             print("Legal values are: <filenme>.txt, parity, symmetry, \
                         auto_onehot, auto_dense, bitcounter, segmentcounter", sep="")
             quit()
+        if self.args.source[-4:] == ".txt":
+            data_set = normalize(data_set)
         self.data_set = data_set
         return data_set
 
@@ -216,3 +223,11 @@ class argument_parser():
                 print("maplayer ot visualize is larger than dimension")
                 quit()
         return self.args.maplayers
+
+    def dispw(self):
+        print("weights to be displayed:", self.args.dispw)
+        return self.args.dispw
+
+    def dispb(self):
+        print("biases to be displayed:", self.args.dispb)
+        return self.args.dispb

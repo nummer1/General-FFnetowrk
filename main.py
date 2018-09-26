@@ -21,21 +21,24 @@ def main():
     ann = gann_base.Gann(parser.dims(), caseman, parser.afunc(), parser.ofunc(), parser.cfunc(), parser.optimizer(),
                 parser.lrate(), parser.wrange(), parser.vint(), parser.mbs(),
                 showint=parser.steps()-1)
-    # ann.add_grabvar(0, type='in')
-    # ann.add_grabvar(1, type='wgt')
-    # ann.add_grabvar(1, type='out')
-    # ann.add_grabvar(2)
-    # ann.add_grabvar(2)
-    ann.run(steps=parser.steps(), sess=None, continued=False, bestk=1)
-    ann.reopen_current_session()
-    for layer in parser.maplayers():
+                # showint=parser.steps()-1)
+    for layer in parser.dispw():
         ann.add_grabvar(layer, type='wgt')
-    for case in caseman.get_testing_cases()[:parser.mapbs()]:
-        ann.do_testing(ann.current_session, [case], msg='Mapping', bestk=1)
-    ann.close_current_session()
-    ann.runmore(steps=100)
+        ann.gen_probe(layer, 'wgt', 'hist')
+    for layer in parser.dispb():
+        ann.add_grabvar(layer, type='bias')
+        ann.gen_probe(layer, 'bias', 'hist')
 
+    # ann.reopen_current_session()
+    # for layer in parser.maplayers():
+    #     ann.add_grabvar(layer, type='wgt')
+    # for case in caseman.get_testing_cases()[:parser.mapbs()]:
+    #     ann.do_testing(ann.current_session, [case], msg='Mapping', bestk=1)
+    # ann.close_current_session()
+    # ann.runmore(steps=100)
+
+    ann.run(steps=parser.steps(), sess=None, continued=False, bestk=1)
     gann_base.PLT.show()
-    # TFT.fireup_tensorboard('probeview')
+    TFT.fireup_tensorboard('probeview')
 
 main()
