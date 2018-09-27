@@ -3,6 +3,7 @@ import re
 import numpy
 import tensorflow as tf
 import tflowtools as TFT
+import mnist_basics
 
 class argument_parser():
     # parses arguments given on command line
@@ -75,13 +76,17 @@ class argument_parser():
                     element[i] = (e - min_arr[i])/(max_arr[i] - min_arr[i])
             return list(zip(input, target))
 
+        def to_float(inp):
+            # returns 0 if input is ? (questionmark)
+            return 0 if inp == '?' else float(inp)
+
         self.source_is_called = True
         print("source:", self.args.source)
         data_set = []
         if self.args.source[-4:] == ".txt":
-            with open(self.args.source) as file:
+            with open("data_set_files/" + self.args.source) as file:
                 data = list(map(lambda x: re.split("[;,]", x), file.readlines()))
-                data = list(map(lambda x: list(map(float, x)), data))
+                data = list(map(lambda x: list(map(to_float, x)), data))
             max_d = max(map(lambda x: int(x[-1]), data))
             for element in data:
                 input = element[:-1]
@@ -102,18 +107,12 @@ class argument_parser():
             data_set = TFT.gen_vector_count_cases(500, 15)
         elif self.args.source == "segmentcounter":
             data_set = TFT.gen_segmented_vector_cases(25, 1000, 0, 8)
-        # elif:
-        #    MNIST!!
-        #    pass
-        # legal text source: wine.txt, yeast.txt, glass.txt,
-        # legal function sources: parity, symmetry, autoencoder, bitcounter, segmentcounter
-        # legal MNIST sources: in mnist/mnist_basics.py
-        # TFT.gen_all_parity_cases(length)
-        # TFT.gen_symvect_cases(length)
-        # TFT.gen_all_one_hot_cases(length)
-        # TFT.gen_dense_autoencoder_cases(length, dens_range(2))
-        # TFT.gen_vector_count_cases(length)
-        # TFT.gen_segmented_vector_cases(size, count, minsegs, maxsegs, poptargs)
+        elif self.args.source == "mnist":
+            # mnist_basics.load_all_flat_cases(type='testing')
+            cases = mnist_basics.load_all_flat_cases(type='training')
+            cases = list(zip(cases[0], cases[1]))
+            data_set = list(map(lambda x: [x[0], TFT.int_to_one_hot(x[1], 10)], cases))
+
         if data_set == []:
             print(self.args.source, " is illegal for argument --source")
             print("Legal values are: <filenme>.txt, parity, symmetry, \
