@@ -21,13 +21,16 @@ def main():
     ann = gann_base.Gann(parser.dims(), caseman, parser.afunc(), parser.ofunc(), parser.cfunc(), parser.optimizer(),
                 parser.lrate(), parser.wrange(), parser.vint(), parser.mbs(),
                 showint=parser.steps()-1)
-                # showint=parser.steps()-1)
+
     for layer in parser.dispw():
         ann.add_grabvar(layer, type='wgt')
         ann.gen_probe(layer, 'wgt', 'hist')
     for layer in parser.dispb():
         ann.add_grabvar(layer, type='bias')
         ann.gen_probe(layer, 'bias', 'hist')
+
+    parser.maplayers()
+    parser.mapbs()
 
     # ann.reopen_current_session()
     # for layer in parser.maplayers():

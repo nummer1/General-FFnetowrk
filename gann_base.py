@@ -164,9 +164,10 @@ class Gann():
         msg = "Grabbed Variables at Step " + str(step)
         print("\n" + msg, end="\n")
         fig_index = 0
+        print("grabbedvalis:", len(grabbed_vals), len(grabbed_vars))
         for i, v in enumerate(grabbed_vals):
             if names: print("   " + names[i] + " = ", end="\n")
-            if type(v) == np.ndarray and len(v.shape) > 1:  # If v is a matrix, use hinton plotting
+            if type(v) == np.ndarray:  # and len(v.shape) > 1:  # If v is a matrix, use hinton plotting
                 TFT.hinton_plot(v, fig=self.grabvar_figures[fig_index], title= names[i]+ ' at step ' + str(step))
                 fig_index += 1
             else:

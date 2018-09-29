@@ -387,6 +387,10 @@ def hinton_plot(matrix, maxval=None, maxsize=1, fig=None,trans=True,scale=True, 
     axes.set_aspect('auto','box')  # Options: ('equal'), ('equal','box'), ('auto'), ('auto','box')..see matplotlib docs
     axes.xaxis.set_major_locator(PLT.NullLocator()); axes.yaxis.set_major_locator(PLT.NullLocator())
 
+    # matrices that are of shape (R, ) need to be reshaped to (R, 1)
+    if len(matrix.shape) == 1:
+        matrix = matrix.reshape(matrix.shape[0], 1)
+
     ymax = (matrix.shape[1] - 1)* maxsize
     for (x, y), val in np.ndenumerate(matrix):
         color = colors[1] if val > 0 else colors[2]  # Hinton uses white = pos, black = neg
