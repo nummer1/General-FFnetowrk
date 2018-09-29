@@ -88,7 +88,6 @@ class Gann():
             self.error_history.append((step, error))
             self.consider_validation_testing(step, sess)
         self.global_training_step += steps
-        print(len(self.error_history), len(self.validation_history))
         TFT.plot_training_history(self.error_history, self.validation_history,
                     xtitle="Step", ytitle="Error", title="", fig=not(continued))
 
@@ -110,6 +109,20 @@ class Gann():
         else:
             print('%s Set Correct Classifications = %f %%' % (msg, 100*(testres/len(cases))))
         return testres  # self.error uses MSE, so this is a per-case value when bestk=None
+
+    def do_mapping(self):
+        self.reopen_current_session()
+        sess = self.current_session
+        cases = self.caseman.get_mapping_cases()
+        results = []
+        for i, case in enumerate(cases):
+            feeder = {self.input: [case[0]], self.target: [case[1]]}
+            self.test_func = self.error
+            _, grabvals, _ = self.run_one_step(self.test_func, self.grabvars, self.probes,
+                    session=sess, feed_dict=feeder, show_interval=None, display_vars=False)
+            results.append(grabvals)
+        self.close_current_session(view=False)
+        return results
 
     # Logits = tensor, float - [batch_size, NUM_CLASSES].
     # labels: Labels tensor, int32 - [batch_size], with values in range [0, NUM_CLASSES).
@@ -148,14 +161,14 @@ class Gann():
 
     # Similar to the "quickrun" functions used earlier.
     def run_one_step(self, operators, grabbed_vars=None, probed_vars=None, dir='probeview',
-                    session=None, feed_dict=None, step=1, show_interval=1):
+                    session=None, feed_dict=None, step=1, show_interval=1, display_vars=True):
         sess = session if session else TFT.gen_initialized_session(dir=dir)
         if probed_vars is not None:
             results = sess.run([operators, grabbed_vars, probed_vars], feed_dict=feed_dict)
             sess.probe_stream.add_summary(results[2], global_step=step)
         else:
             results = sess.run([operators, grabbed_vars], feed_dict=feed_dict)
-        if show_interval and (step % show_interval == 0):
+        if show_interval and (step % show_interval == 0) and display_vars:
             self.display_grabvars(results[1], grabbed_vars, step=step)
         return results[0], results[1], sess
 
@@ -164,7 +177,6 @@ class Gann():
         msg = "Grabbed Variables at Step " + str(step)
         print("\n" + msg, end="\n")
         fig_index = 0
-        print("grabbedvalis:", len(grabbed_vals), len(grabbed_vars))
         for i, v in enumerate(grabbed_vals):
             if names: print("   " + names[i] + " = ", end="\n")
             if type(v) == np.ndarray:  # and len(v.shape) > 1:  # If v is a matrix, use hinton plotting
@@ -278,8 +290,9 @@ class Gannmodule():
 # a machine-learning system
 
 class Caseman():
-    def __init__(self, cases, vfrac, tfrac, casefrac):
+    def __init__(self, cases, vfrac, tfrac, casefrac, mapsep):
         self.cases = cases
+        self.mapsep = mapsep
         self.validation_fraction = vfrac * casefrac
         self.test_fraction = tfrac * casefrac
         self.training_fraction = (1 - (vfrac + tfrac)) * casefrac
@@ -293,10 +306,13 @@ class Caseman():
         self.training_cases = ca[0:separator1]
         self.validation_cases = ca[separator1:separator2]
         self.testing_cases = ca[separator2:]
+        np.random.shuffle(ca)
+        self.mapping_cases = ca[0:min(self.mapsep, len(ca))]
 
     def get_training_cases(self): return self.training_cases
     def get_validation_cases(self): return self.validation_cases
     def get_testing_cases(self): return self.testing_cases
+    def get_mapping_cases(self): return self.mapping_cases
 
 
 #   ****  MAIN functions ****

@@ -9,7 +9,6 @@ class argument_parser():
     # parses arguments given on command line
 
     def __init__(self):
-        self.data_set = []
         self.source_is_called = False
 
     def parse(self):
@@ -40,27 +39,46 @@ class argument_parser():
                 help="number of training minibatches to use between each validation test")
         parser.add_argument("--mbs", type=int, required=True, \
                 help="number of cases in a minibatch")
-        # TODO: NOT USED
         parser.add_argument("--mapbs", type=int, required=True, \
                 help="number of training cases to be used for a map test. Zero indicates no map test")
         parser.add_argument("--steps", type=int, required=True, \
                 help="total number of minibatches to be run through the system during training")
-        # TODO: NOT USED
         parser.add_argument("--maplayers", nargs='*', type=int, required=True, \
                 help="the layers to be visualized during map test")
-        # parser.add_argument("--mapdend", nargs='+', type=int, required=True, \
-        # help="list of layers whose activation layers will be used to produce dendograms")
+        parser.add_argument("--mapdend", nargs='*', type=int, required=True, \
+                help="list of layers whose activation layers will be used to produce dendograms")
         parser.add_argument("--dispw", nargs='*', type=int, required=True, \
                 help="list of the weight matrices to be visualized at the end of run")
         parser.add_argument("--dispb", nargs='*', type=int, required=True, \
                 help="list of bias matrices to be visualized at the end or run")
         self.args = parser.parse_args()
 
+    def organize(self):
+        self.data_set_v = self.source()
+        self.dims_v = self.dims()
+        self.afunc_v = self.afunc()
+        self.ofunc_v = self.ofunc()
+        self.cfunc_v = self.cfunc()
+        self.lrate_v = self.lrate()
+        self.wrange_v = self.wrange()
+        self.optimizer_v = self.optimizer()
+        self.casefrac_v = self.casefrac()
+        self.vfrac_v = self.vfrac()
+        self.tfrac_v = self.tfrac()
+        self.vint_v = self.vint()
+        self.mbs_v = self.mbs()
+        self.mapbs_v = self.mapbs()
+        self.steps_v = self.steps()
+        self.maplayers_v = self.maplayers()
+        self.mapdend_v = self.mapdend()
+        self.dispw_v = self.dispw()
+        self.dispb_v = self.dispb()
+
     def dims(self):
         if not self.source_is_called:
             print("source() must be called before dims() is called")
             quit()
-        self.args.dims = [len(self.data_set[0][0])] + self.args.dims + [len(self.data_set[0][1])]
+        self.args.dims = [len(self.data_set_v[0][0])] + self.args.dims + [len(self.data_set_v[0][1])]
         print("dimensions:", self.args.dims)
         return self.args.dims
 
@@ -120,7 +138,6 @@ class argument_parser():
             quit()
         if self.args.source[-4:] == ".txt":
             data_set = normalize(data_set)
-        self.data_set = data_set
         return data_set
 
     def afunc(self):
@@ -222,6 +239,10 @@ class argument_parser():
                 print("maplayer ot visualize is larger than dimension")
                 quit()
         return self.args.maplayers
+
+    def mapdend(self):
+        print("layers ot make dendograms of:", self.args.mapdend)
+        return self.args.mapdend
 
     def dispw(self):
         print("weights to be displayed:", self.args.dispw)

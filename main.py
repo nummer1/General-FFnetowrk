@@ -4,9 +4,9 @@ import gann_base
 import tflowtools as TFT
 
 
-# TODO: fix bestk in gann_base.do_testing
 # TODO: optimizers needs arguments
 # TODO: must normalize input from .txt files
+# TODO: source needs more arguments, readfunctions etc
 
 # NOTE: use softmax for ofunc and cross_entropy as loss for classification
 # NOTE: use sigmoid or tanh for ofunc and MSE for regression
@@ -15,32 +15,31 @@ import tflowtools as TFT
 def main():
     parser = argument_parser.argument_parser()
     parser.parse()
-    # (self, cfunc, vfrac, tfrac, casefrac)
-    caseman = gann_base.Caseman(parser.source(), parser.vfrac(), parser.tfrac(), parser.casefrac())
+    parser.organize()
+    # (self, cases, vfrac, tfrac, casefrac, mapsep)
+    caseman = gann_base.Caseman(parser.data_set_v, parser.vfrac_v, parser.tfrac_v, parser.casefrac_v, parser.mapbs_v)
     # (self, dims, cman, afunc, ofunc, cfunc, optimizer, lrate, wrange, vint, mbs, showint=None)
-    ann = gann_base.Gann(parser.dims(), caseman, parser.afunc(), parser.ofunc(), parser.cfunc(), parser.optimizer(),
-                parser.lrate(), parser.wrange(), parser.vint(), parser.mbs(),
-                showint=parser.steps()-1)
+    ann = gann_base.Gann(parser.dims_v, caseman, parser.afunc_v, parser.ofunc_v, parser.cfunc_v, parser.optimizer_v,
+                parser.lrate_v, parser.wrange_v, parser.vint_v, parser.mbs_v,
+                showint=parser.steps_v-1)
 
-    for layer in parser.dispw():
+    for layer in parser.dispw_v:
         ann.add_grabvar(layer, type='wgt')
         ann.gen_probe(layer, 'wgt', 'hist')
-    for layer in parser.dispb():
+    for layer in parser.dispb_v:
         ann.add_grabvar(layer, type='bias')
         ann.gen_probe(layer, 'bias', 'hist')
 
-    parser.maplayers()
-    parser.mapbs()
+    # run, then map
+    ann.run(steps=parser.steps_v, sess=None, continued=False, bestk=1)
 
-    # ann.reopen_current_session()
-    # for layer in parser.maplayers():
-    #     ann.add_grabvar(layer, type='wgt')
-    # for case in caseman.get_testing_cases()[:parser.mapbs()]:
-    #     ann.do_testing(ann.current_session, [case], msg='Mapping', bestk=1)
-    # ann.close_current_session()
-    # ann.runmore(steps=100)
+    for layer in parser.maplayers_v:
+        # SHOULD ADD AND REMOVE LAYERS
+        pass
+    res = ann.do_mapping()
+    # TFT.display_matrix()
+    # TODO: parser.mapdend_v
 
-    ann.run(steps=parser.steps(), sess=None, continued=False, bestk=1)
     gann_base.PLT.show()
     TFT.fireup_tensorboard('probeview')
 
