@@ -113,7 +113,7 @@ class argument_parser():
         elif self.args.source == "parity":
             data_set = TFT.gen_all_parity_cases(10)
         elif self.args.source == "symmetry":
-            vecs = TFT.gen_symvect_cases(101, 2000)
+            vecs = TFT.gen_symvect_dataset(101, 2000)
             inputs = list(map(lambda x: x[:-1], vecs))
             targets = list(map(lambda x: TFT.int_to_one_hot(x[-1], 2), vecs))
             data_set = list(zip(inputs, targets))

@@ -139,11 +139,10 @@ class Gann():
     # target.  Unfortunately, top_k requires a different set of arguments...and is harder to use.
 
     def gen_match_counter(self, logits, labels, k=1):
-        correct = tf.nn.in_top_k(tf.cast(logits, tf.float32), labels, k)  # Return number of correct outputs
-        values, indices = tf.nn.top_k(tf.cast(logits, tf.float32), k=k, sorted=False)
-        print(values, " : ", indices, " : ", correct)
-        # print("CORRECT:", correct)
-        # print(tf.reduce_sum(tf.cast(correct, tf.int32)))
+        # correct = tf.nn.in_top_k(tf.cast(logits, tf.float32), labels, k)  # Return number of correct outputs
+        _, indices1 = tf.nn.top_k(tf.cast(logits, tf.float32), k=k, sorted=False)
+        _, indices2 = tf.nn.top_k(tf.cast(labels, tf.float32), k=k, sorted=False)
+        correct = tf.equal(indices1, indices2)
         return tf.reduce_sum(tf.cast(correct, tf.int32))
 
     def training_session(self, steps, sess=None, dir="probeview", continued=False):
