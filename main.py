@@ -47,6 +47,14 @@ def main():
 
     # TODO: parser.mapdend_v
 
+    # *************** DENDROGRAM*************************
+    # Options:
+    # orientation = top, bottom, left, right (refers to location of the root of the tree)
+    # mode = single, average, complete, centroid, ward, median
+    # metric = euclidean, cityblock (manhattan), hamming, cosine, correlation ... (see matplotlib distance.pdist for all 23)
+    # def dendrogram(features,labels,metric='euclidean',mode='average',ax=None,title='Dendrogram',orient='top',lrot=90.0):
+
+
     gann_base.PLT.show()
     TFT.fireup_tensorboard('probeview')
 
