@@ -2,6 +2,7 @@ import argument_parser
 import gann_base
 # import tensorflow as tf
 import tflowtools as TFT
+import numpy as np
 
 
 # TODO: optimizers needs arguments
@@ -33,11 +34,17 @@ def main():
     # run, then map
     ann.run(steps=parser.steps_v, sess=None, continued=False, bestk=1)
 
+    ann.remove_grabvars()
     for layer in parser.maplayers_v:
-        # SHOULD ADD AND REMOVE LAYERS
-        pass
+        ann.add_grabvar(layer, type='out', add_figure=False)
     res = ann.do_mapping()
-    # TFT.display_matrix()
+    results = []
+    for i in range(len(res[0])):
+        l = np.array([r[i] for r in res])
+        l = l.reshape(l.shape[0], l.shape[2])
+        TFT.hinton_plot(l, title="output of layer " + str(i))
+        results.append(l)
+
     # TODO: parser.mapdend_v
 
     gann_base.PLT.show()

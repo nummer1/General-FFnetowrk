@@ -34,9 +34,14 @@ class Gann():
 
     # Grabvars are displayed by my own code, so I have more control over the display format.
     # Each grabvar gets its own matplotlib figure in which to display its value.
-    def add_grabvar(self, module_index, type='wgt'):
+    def add_grabvar(self, module_index, type='wgt', add_figure=True):
         self.grabvars.append(self.modules[module_index].getvar(type))
-        self.grabvar_figures.append(PLT.figure())
+        if add_figure:
+            self.grabvar_figures.append(PLT.figure())
+
+    def remove_grabvars(self):
+        self.grabvars = []
+        self.grabvar_figures = []
 
     def roundup_probes(self):
         self.probes = tf.summary.merge_all()
@@ -134,7 +139,11 @@ class Gann():
     # target.  Unfortunately, top_k requires a different set of arguments...and is harder to use.
 
     def gen_match_counter(self, logits, labels, k=1):
-        correct = tf.nn.in_top_k(tf.cast(logits,tf.float32), labels, k)  # Return number of correct outputs
+        correct = tf.nn.in_top_k(tf.cast(logits, tf.float32), labels, k)  # Return number of correct outputs
+        values, indices = tf.nn.top_k(tf.cast(logits, tf.float32), k=k, sorted=False)
+        print(values, " : ", indices, " : ", correct)
+        # print("CORRECT:", correct)
+        # print(tf.reduce_sum(tf.cast(correct, tf.int32)))
         return tf.reduce_sum(tf.cast(correct, tf.int32))
 
     def training_session(self, steps, sess=None, dir="probeview", continued=False):
