@@ -36,24 +36,22 @@ def main():
 
     ann.remove_grabvars()
     for layer in parser.maplayers_v:
-        ann.add_grabvar(layer, type='out', add_figure=False)
-    res = ann.do_mapping()
+        if layer == 0:
+            ann.add_grabvar(layer, type='in', add_figure=False)
+        else:
+            ann.add_grabvar(layer - 1, type='out', add_figure=False)
+    res, labs = ann.do_mapping()
     results = []
     for i in range(len(res[0])):
         l = np.array([r[i] for r in res])
         l = l.reshape(l.shape[0], l.shape[2])
-        TFT.hinton_plot(l, title="output of layer " + str(i))
+        TFT.hinton_plot(l, title="mapping test output of layer " + str(parser.maplayers_v[i]))
         results.append(l)
 
-    # TODO: parser.mapdend_v
-
-    # *************** DENDROGRAM*************************
-    # Options:
-    # orientation = top, bottom, left, right (refers to location of the root of the tree)
-    # mode = single, average, complete, centroid, ward, median
-    # metric = euclidean, cityblock (manhattan), hamming, cosine, correlation ... (see matplotlib distance.pdist for all 23)
-    # def dendrogram(features,labels,metric='euclidean',mode='average',ax=None,title='Dendrogram',orient='top',lrot=90.0):
-
+    for i, r in enumerate(results):
+        # DENDOGRAM
+        if parser.maplayers_v[i] in parser.mapdend_v:
+            TFT.dendrogram(r, list(map(TFT.one_hot_to_int, labs)), title="Dendrogram " + str(parser.maplayers_v[i]))
 
     gann_base.PLT.show()
     TFT.fireup_tensorboard('probeview')

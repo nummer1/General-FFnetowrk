@@ -120,14 +120,16 @@ class Gann():
         sess = self.current_session
         cases = self.caseman.get_mapping_cases()
         results = []
+        labels = []
         for i, case in enumerate(cases):
             feeder = {self.input: [case[0]], self.target: [case[1]]}
             self.test_func = self.error
             _, grabvals, _ = self.run_one_step(self.test_func, self.grabvars, self.probes,
                     session=sess, feed_dict=feeder, show_interval=None, display_vars=False)
             results.append(grabvals)
+            labels.append(case[1])
         self.close_current_session(view=False)
-        return results
+        return results, labels
 
     # Logits = tensor, float - [batch_size, NUM_CLASSES].
     # labels: Labels tensor, int32 - [batch_size], with values in range [0, NUM_CLASSES).
@@ -139,10 +141,10 @@ class Gann():
     # target.  Unfortunately, top_k requires a different set of arguments...and is harder to use.
 
     def gen_match_counter(self, logits, labels, k=1):
-        # correct = tf.nn.in_top_k(tf.cast(logits, tf.float32), labels, k)  # Return number of correct outputs
-        _, indices1 = tf.nn.top_k(tf.cast(logits, tf.float32), k=k, sorted=False)
-        _, indices2 = tf.nn.top_k(tf.cast(labels, tf.float32), k=k, sorted=False)
-        correct = tf.equal(indices1, indices2)
+        correct = tf.nn.in_top_k(tf.cast(logits, tf.float32), labels, k)  # Return number of correct outputs
+        # _, indices1 = tf.nn.top_k(tf.cast(logits, tf.float32), k=k, sorted=False)
+        # _, indices2 = tf.nn.top_k(tf.cast(labels, tf.float32), k=k, sorted=False)
+        # correct = tf.equal(indices1, indices2)
         return tf.reduce_sum(tf.cast(correct, tf.int32))
 
     def training_session(self, steps, sess=None, dir="probeview", continued=False):

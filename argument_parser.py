@@ -142,7 +142,8 @@ class argument_parser():
 
     def afunc(self):
         print("activation function:", self.args.afunc)
-        dict = {"sigmoid": tf.nn.sigmoid, "relu": tf.nn.relu, "relu6": tf.nn.relu6, "tanh": tf.nn.tanh}
+        dict = {"sigmoid": tf.nn.sigmoid, "relu": tf.nn.relu, "relu6": tf.nn.relu6, "elu": tf.nn.elu,
+                    "tanh": tf.nn.tanh}
         if self.args.afunc in dict:
             return dict[self.args.afunc]
         else:
@@ -231,13 +232,13 @@ class argument_parser():
 
     def maplayers(self):
         print("maplayers to visualize", self.args.maplayers)
-        if not self.source_is_called:
-            print("source must be called before maplayers is called")
-            quit()
-        for layer in self.args.maplayers:
-            if layer > len(self.args.dims) - 2:
-                print("maplayer ot visualize is larger than dimension")
-                quit()
+        # if not self.source_is_called:
+        #     print("source must be called before maplayers is called")
+        #     quit()
+        # for layer in self.args.maplayers:
+        #     if layer > len(self.args.dims) - 1:
+        #         print("maplayer ot visualize is larger than dimension")
+        #         quit()
         return self.args.maplayers
 
     def mapdend(self):
