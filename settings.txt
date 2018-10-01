@@ -1,6 +1,11 @@
+# dims 100 20 seems to work better for parity and symmetry
 # parity
-python3 main.py --source parity --afunc relu --ofunc linear --cfunc softmax_ce --lrate 0.001 --wrange 0 0.1 --optimizer adam --casefrac 1 --vfrac 0.1 --tfrac 0.1 --vint 100 --mbs 20 --steps 10000 --mapbs 20 --maplayers 0 1 2 --mapdend 1 --dispw --dispb --dims 100
+python3 main.py --source parity --afunc relu --ofunc linear --cfunc softmax_ce --lrate 0.001 --wrange 0 0.1 --optimizer adam --casefrac 1 --vfrac 0.1 --tfrac 0.1 --vint 100 --mbs 20 --steps 10000 --mapbs 40 --maplayers 0 1 2 --mapdend 1 --dispw --dispb --dims 100
 # symmetry
-python3 main.py --source symmetry --afunc relu --ofunc linear --cfunc softmax_ce --lrate 0.001 --wrange 0 0.1 --optimizer adam --casefrac 1 --vfrac 0.1 --tfrac 0.1 --vint 100 --mbs 20 --steps 10000 --mapbs 20 --maplayers 0 1 2 --mapdend 1 --dispw --dispb --dims 100
+python3 main.py --source symmetry --afunc relu --ofunc linear --cfunc softmax_ce --lrate 0.001 --wrange 0 0.1 --optimizer adam --casefrac 1 --vfrac 0.1 --tfrac 0.1 --vint 100 --mbs 20 --steps 10000 --mapbs 40 --maplayers 0 1 2 --mapdend 1 --dispw --dispb --dims 100
 # bitcounter
-python3 main.py --source bitcounter --afunc relu --ofunc linear --cfunc softmax_ce --lrate 0.001 --wrange 0 0.1 --optimizer adam --casefrac 1 --vfrac 0.1 --tfrac 0.1 --vint 100 --mbs 20 --steps 10000 --mapbs 20 --maplayers 0 2 3 --mapdend 2 --dispw --dispb --dims 100 20
+python3 main.py --source bitcounter --afunc relu --ofunc linear --cfunc softmax_ce --lrate 0.001 --wrange 0 0.1 --optimizer adam --casefrac 1 --vfrac 0.1 --tfrac 0.1 --vint 100 --mbs 20 --steps 10000 --mapbs 40 --maplayers 2 3 --mapdend 2 3 --dispw --dispb --dims 100 20
+# segmentcounter
+python3 main.py --source segmentcounter --afunc relu --ofunc linear --cfunc softmax_ce --lrate 0.001 --wrange 0 0.1 --optimizer adam --casefrac 1 --vfrac 0.1 --tfrac 0.1 --vint 100 --mbs 40 --steps 10000 --mapbs 20 --maplayers 2 3 --mapdend 2 3 --dispw --dispb --dims 100 20
+# mnist
+python3 main.py --source mnist --afunc relu --ofunc linear --cfunc softmax_ce --lrate 0.001 --wrange 0 0.1 --optimizer adam --casefrac 0.1 --vfrac 0.1 --tfrac 0.1 --vint 100 --mbs 100 --steps 4000 --mapbs 20 --maplayers 2 3 --mapdend 2 3 --dispw --dispb --dims 1000 100
