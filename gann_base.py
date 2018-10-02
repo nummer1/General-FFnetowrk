@@ -9,7 +9,7 @@ import tflowtools as TFT
 # This is the original GANN, which has been improved in the file gann.py
 
 class Gann():
-    def __init__(self, dims, cman, afunc, ofunc, cfunc, optimizer, lrate, wrange, vint, mbs, showint=None):
+    def __init__(self, dims, cman, afunc, ofunc, cfunc, optimizer, lrate, wrange, vint, mbs, usevsi, showint=None):
         self.layer_sizes = dims  # Sizes of each layer of neurons
         self.caseman = cman
         self.activation_func = afunc
@@ -21,6 +21,7 @@ class Gann():
         self.show_interval = showint  # Frequency of showing grabbed variables
         self.minibatch_size = mbs
         self.validation_interval = vint
+        self.usevsi = usevsi
         self.global_training_step = 0  # Enables coherent data-storage during extra training runs (see runmore).
         self.grabvars = []  # Variables to be monitored (by gann code) during a run.
         self.grabvar_figures = []  # One matplotlib figure for each grabvar
@@ -56,7 +57,7 @@ class Gann():
         insize = num_inputs
         # Build all of the modules
         for i, outsize in enumerate(self.layer_sizes[1:]):
-            gmod = Gannmodule(self, i, invar, insize, outsize, self.activation_func, self.weight_range)
+            gmod = Gannmodule(self, i, invar, insize, outsize, self.activation_func, self.weight_range, self.usevsi)
             invar = gmod.output
             insize = gmod.outsize
         self.output = gmod.output  # Output of last module is output of whole network
@@ -255,7 +256,7 @@ class Gann():
 
 # A general ann module = a layer of neurons (the output) plus its incoming weights and biases.
 class Gannmodule():
-    def __init__(self, ann, index, invariable, insize, outsize, afunc, wrange):
+    def __init__(self, ann, index, invariable, insize, outsize, afunc, wrange, usevsi):
         self.ann = ann
         self.index = index
         self.input = invariable  # Either the gann's input variable or the upstream module's output
@@ -263,14 +264,20 @@ class Gannmodule():
         self.outsize = outsize  # Number of neurons in this module
         self.activation_func = afunc
         self.wrange = wrange
+        self.usevsi = usevsi
         self.name = "Module-"+str(self.index)
         self.build()
 
     def build(self):
         mona = self.name
         n = self.outsize
-        self.weights = tf.Variable(np.random.uniform(self.wrange[0], self.wrange[1], size=(self.insize, n)),
-                    name=mona+'-wgt',trainable=True)  # True = default for trainable anyway
+        if self.usevsi:
+            initializer = tf.contrib.layers.variance_scaling_initializer(mode='FAN_IN', dtype=tf.float64)
+            self.weights = tf.Variable(initializer(shape=(self.insize, n)),
+                        name=mona+'-wgt',trainable=True)
+        else:
+            self.weights = tf.Variable(np.random.uniform(self.wrange[0], self.wrange[1], size=(self.insize, n)),
+                        name=mona+'-wgt',trainable=True)  # True = default for trainable anyway
         self.biases = tf.Variable(np.random.uniform(self.wrange[0], self.wrange[1], size=n),
                     name=mona+'-bias', trainable=True)  # First bias vector
         self.output = self.activation_func(tf.matmul(self.input, self.weights) + self.biases, name=mona+'-out')

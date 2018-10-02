@@ -19,9 +19,9 @@ def main():
     parser.organize()
     # (self, cases, vfrac, tfrac, casefrac, mapsep)
     caseman = gann_base.Caseman(parser.data_set_v, parser.vfrac_v, parser.tfrac_v, parser.casefrac_v, parser.mapbs_v)
-    # (self, dims, cman, afunc, ofunc, cfunc, optimizer, lrate, wrange, vint, mbs, showint=None)
+    # (self, dims, cman, afunc, ofunc, cfunc, optimizer, lrate, wrange, vint, mbs, usevsi, showint=None):
     ann = gann_base.Gann(parser.dims_v, caseman, parser.afunc_v, parser.ofunc_v, parser.cfunc_v, parser.optimizer_v,
-                parser.lrate_v, parser.wrange_v, parser.vint_v, parser.mbs_v,
+                parser.lrate_v, parser.wrange_v, parser.vint_v, parser.mbs_v, parser.usevsi_v,
                 showint=parser.steps_v-1)
 
     for layer in parser.dispw_v:
@@ -32,7 +32,7 @@ def main():
         ann.gen_probe(layer, 'bias', 'hist')
 
     # run, then map
-    ann.run(steps=parser.steps_v, sess=None, continued=False, bestk=1)
+    ann.run(steps=parser.steps_v, sess=None, continued=False, bestk=parser.best1_v)
 
     ann.remove_grabvars()
     for layer in parser.maplayers_v:
@@ -50,8 +50,8 @@ def main():
 
     for i, r in enumerate(results):
         # DENDOGRAM
-        if parser.maplayers_v[i] in parser.mapdend_v:
-            TFT.dendrogram(r, list(map(TFT.one_hot_to_int, labs)), title="Dendrogram " + str(parser.maplayers_v[i]))
+        # if parser.maplayers_v[i] in parser.mapdend_v:
+        TFT.dendrogram(r, list(map(TFT.one_hot_to_int, labs)), title="Dendrogram " + str(parser.maplayers_v[i]))
 
     gann_base.PLT.show()
     TFT.fireup_tensorboard('probeview')

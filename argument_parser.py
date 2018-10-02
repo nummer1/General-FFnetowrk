@@ -30,28 +30,32 @@ class argument_parser():
                 help="lower and higher bound for random initialization of weights")
         parser.add_argument("-o", "--optimizer", required=True, \
                 help="what optimizer to use")
-        parser.add_argument("--casefrac", type=float, required=True, \
+        parser.add_argument("--casefrac", type=float, required=False, \
                 help="set fraction of data to use for training validation and testing")
-        parser.add_argument("--vfrac", type=float, required=True, \
+        parser.add_argument("--vfrac", type=float, required=False, \
                 help="validation fraction")
-        parser.add_argument("--tfrac", type=float, required=True, \
+        parser.add_argument("--tfrac", type=float, required=False, \
                 help="test fraction")
-        parser.add_argument("--vint", type=int, required=True, \
+        parser.add_argument("--vint", type=int, required=False, \
                 help="number of training minibatches to use between each validation test")
         parser.add_argument("--mbs", type=int, required=True, \
                 help="number of cases in a minibatch")
-        parser.add_argument("--mapbs", type=int, required=True, \
+        parser.add_argument("--mapbs", type=int, required=False, \
                 help="number of training cases to be used for a map test. Zero indicates no map test")
         parser.add_argument("--steps", type=int, required=True, \
                 help="total number of minibatches to be run through the system during training")
-        parser.add_argument("--maplayers", nargs='*', type=int, required=True, \
+        parser.add_argument("--maplayers", nargs='*', type=int, required=False, \
                 help="the layers to be visualized during map test")
-        parser.add_argument("--mapdend", nargs='*', type=int, required=True, \
-                help="list of layers whose activation layers will be used to produce dendograms")
-        parser.add_argument("--dispw", nargs='*', type=int, required=True, \
+        # parser.add_argument("--mapdend", nargs='*', type=int, required=False, \
+        #         help="list of layers whose activation layers will be used to produce dendograms")
+        parser.add_argument("--dispw", nargs='*', type=int, required=False, \
                 help="list of the weight matrices to be visualized at the end of run")
-        parser.add_argument("--dispb", nargs='*', type=int, required=True, \
+        parser.add_argument("--dispb", nargs='*', type=int, required=False, \
                 help="list of bias matrices to be visualized at the end or run")
+        parser.add_argument("--usevsi", action='store_true', \
+                help="use variance_scaling_initializer to initialize weights")
+        parser.add_argument("--notbest1", action='store_false', \
+                help="don't use bestk=1 as evaluation function")
         self.args = parser.parse_args()
 
     def organize(self):
@@ -71,9 +75,11 @@ class argument_parser():
         self.mapbs_v = self.mapbs()
         self.steps_v = self.steps()
         self.maplayers_v = self.maplayers()
-        self.mapdend_v = self.mapdend()
+        # self.mapdend_v = self.mapdend()
         self.dispw_v = self.dispw()
         self.dispb_v = self.dispb()
+        self.usevsi_v = self.usevsi()
+        self.best1_v = self.best1()
 
     def dims(self):
         if not self.source_is_called:
@@ -195,32 +201,33 @@ class argument_parser():
         if self.args.wrange[0] > self.args.wrange[1]:
             print("wrange start (", self.args.wrange[0], ") is larger than finish (", self.args.wrange[1], ")", sep="")
             quit()
-        return self.args.wrange
+        else:
+            return self.args.wrange
 
     def casefrac(self):
-        print("casefrac:", self.args.casefrac)
-        if self.args.casefrac > 1 or self.args.casefrac < 0:
-            print("casefrac is larger than 1 or smaller than 0")
-            quit()
-        return self.args.casefrac
+        print("casefrac:", self.args.casefrac if self.args.casefrac is not None else 1)
+        # if self.args.casefrac is not None and (self.args.casefrac > 1 or self.args.casefrac < 0):
+        #     print("casefrac is larger than 1 or smaller than 0")
+        #     quit()
+        return self.args.casefrac if self.args.casefrac is not None else 1
 
     def vfrac(self):
-        print("validation fraction:", self.args.vfrac)
-        if self.args.vfrac > 1 or self.args.vfrac < 0:
-            print("vfrac is larger than 1 or smaller than 0")
-            quit()
-        return self.args.vfrac
+        print("validation fraction:", self.args.vfrac if self.args.vfrac is not None else 0.1)
+        # if self.args.vfrac > 1 or self.args.vfrac < 0:
+        #     print("vfrac is larger than 1 or smaller than 0")
+        #     quit()
+        return self.args.vfrac if self.args.vfrac is not None else 0.1
 
     def tfrac(self):
-        print("test fraction:", self.args.tfrac)
-        if self.args.tfrac > 1 or self.args.tfrac < 0:
-            print("tfrac is larger than 1 or smaller than 0")
-            quit()
-        return self.args.tfrac
+        print("test fraction:", self.args.tfrac if self.args.tfrac is not None else 0.1)
+        # if self.args.tfrac > 1 or self.args.tfrac < 0:
+        #     print("tfrac is larger than 1 or smaller than 0")
+        #     quit()
+        return self.args.tfrac if self.args.tfrac is not None else 0.1
 
     def vint(self):
-        print("validation intervals:", self.args.vint)
-        return self.args.vint
+        print("validation intervals:", self.args.vint if self.args.vint is not None else 100)
+        return self.args.vint if self.args.vint is not None else 100
 
     def mbs(self):
         print("minibatch size:", self.args.mbs)
@@ -231,11 +238,11 @@ class argument_parser():
         return self.args.steps
 
     def mapbs(self):
-        print("map batch size:", self.args.mapbs)
-        return self.args.mapbs
+        print("map batch size:", self.args.mapbs if self.args.mapbs is not None else 20)
+        return self.args.mapbs  if self.args.mapbs is not None else 20
 
     def maplayers(self):
-        print("maplayers to visualize", self.args.maplayers)
+        print("maplayers to visualize", self.args.maplayers if self.args.maplayers is not None else [])
         # if not self.source_is_called:
         #     print("source must be called before maplayers is called")
         #     quit()
@@ -243,16 +250,24 @@ class argument_parser():
         #     if layer > len(self.args.dims) - 1:
         #         print("maplayer ot visualize is larger than dimension")
         #         quit()
-        return self.args.maplayers
+        return self.args.maplayers if self.args.maplayers is not None else []
 
-    def mapdend(self):
-        print("layers ot make dendograms of:", self.args.mapdend)
-        return self.args.mapdend
+    # def mapdend(self):
+    #     print("layers ot make dendograms of:", self.args.mapdend if self.args.mapdend is not None else [])
+    #     return self.args.mapdend if self.args.mapdend is not None else []
 
     def dispw(self):
-        print("weights to be displayed:", self.args.dispw)
-        return self.args.dispw
+        print("weights to be displayed:", self.args.dispw if self.args.dispw is not None else [])
+        return self.args.dispw if self.args.dispw is not None else []
 
     def dispb(self):
-        print("biases to be displayed:", self.args.dispb)
-        return self.args.dispb
+        print("biases to be displayed:", self.args.dispb if self.args.dispb is not None else [])
+        return self.args.dispb if self.args.dispb is not None else []
+
+    def usevsi(self):
+        print("use variance scaling for weights:", self.args.usevsi)
+        return self.args.usevsi
+
+    def best1(self):
+        print("use bestk=1:", self.args.notbest1)
+        return 1 if self.args.notbest1 else None
