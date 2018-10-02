@@ -8,4 +8,9 @@ python3 main.py --source bitcounter --afunc relu --ofunc linear --cfunc softmax_
 # segmentcounter
 python3 main.py --source segmentcounter --afunc relu --ofunc linear --cfunc softmax_ce --lrate 0.001 --wrange 0 0.1 --optimizer adam --casefrac 1 --vfrac 0.1 --tfrac 0.1 --vint 100 --mbs 40 --steps 10000 --mapbs 20 --maplayers 2 3 --mapdend 2 3 --dispw --dispb --dims 100 20
 # mnist
-python3 main.py --source mnist --afunc relu --ofunc linear --cfunc softmax_ce --lrate 0.001 --wrange 0 0.1 --optimizer adam --casefrac 0.1 --vfrac 0.1 --tfrac 0.1 --vint 100 --mbs 100 --steps 4000 --mapbs 20 --maplayers 2 3 --mapdend 2 3 --dispw --dispb --dims 1000 100
+python3 main.py --source mnist --afunc relu --ofunc linear --cfunc softmax_ce --lrate 0.001 --wrange 0 0.1 --optimizer adam --casefrac 0.1 --vfrac 0.1 --tfrac 0.1 --vint 100 --mbs 100 --steps 2000 --mapbs 20 --maplayers --mapdend --dispw --dispb --dims 1000 100
+# wine
+# glass
+python3 main.py --source glass.txt --afunc relu --ofunc linear --cfunc softmax_ce --lrate 0.001 --wrange 0 0.1 --optimizer adam --casefrac 1 --vfrac 0.1 --tfrac 0.1 --vint 100 --mbs 100 --steps 10000 --mapbs 20 --maplayers 2 --mapdend 2 --dispw --dispb --dims 1000 20
+# yeast
+# hackers choice

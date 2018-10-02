@@ -4,6 +4,7 @@ import numpy
 import tensorflow as tf
 import tflowtools as TFT
 import mnist_basics
+import math
 
 class argument_parser():
     # parses arguments given on command line
@@ -128,8 +129,11 @@ class argument_parser():
         elif self.args.source == "mnist":
             # mnist_basics.load_all_flat_cases(type='testing')
             cases = mnist_basics.load_all_flat_cases(type='training')
-            cases = list(zip(cases[0], cases[1]))
-            data_set = list(map(lambda x: [x[0], TFT.int_to_one_hot(x[1], 10)], cases))
+            input = cases[0]
+            target = cases[1]
+            input = list(map(lambda x: list(map(lambda e: e/255, x)), input))
+            target = list(map(lambda x: TFT.int_to_one_hot(x, 10), target))
+            data_set = list(zip(input, target))
 
         if data_set == []:
             print(self.args.source, " is illegal for argument --source")
