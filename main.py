@@ -51,7 +51,8 @@ def main():
     for i, r in enumerate(results):
         # DENDOGRAM
         # if parser.maplayers_v[i] in parser.mapdend_v:
-        TFT.dendrogram(r, list(map(TFT.one_hot_to_int, labs)), title="Dendrogram " + str(parser.maplayers_v[i]))
+        if parser.best1_v:
+            TFT.dendrogram(r, list(map(TFT.one_hot_to_int, labs)), title="Dendrogram " + str(parser.maplayers_v[i]))
 
     gann_base.PLT.show()
     TFT.fireup_tensorboard('probeview')

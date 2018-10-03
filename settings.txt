@@ -1,10 +1,9 @@
 # parity
-python3 main.py --source parity --afunc relu --ofunc linear --cfunc softmax_ce --lrate 0.001 --wrange 0 0.1 --optimizer adam --mbs 50 --steps 20000 --dims 16 --usevsi
 python3 main.py --source parity --afunc relu --ofunc linear --cfunc softmax_ce --lrate 0.001 --wrange 0 0.1 --optimizer adam --mbs 50 --steps 10000 --dims 100
 # symmetry
-python3 main.py --source symmetry --afunc relu --ofunc linear --cfunc softmax_ce --lrate 0.001 --wrange 0 0.1 --optimizer adam --mbs 50 --steps 10000--dims 24
+python3 main.py --source symmetry --afunc relu --ofunc linear --cfunc softmax_ce --lrate 0.001 --wrange 0 0.1 --optimizer adam --mbs 50 --steps 10000 --dims 24
 # bitcounter
-python3 main.py --source bitcounter --afunc relu --ofunc linear --cfunc softmax_ce --lrate 0.001 --wrange 0 0.1 --timizer adam0 --mbs 50 --steps 20000 --dims 8 4
+python3 main.py --source bitcounter --afunc relu --ofunc linear --cfunc softmax_ce --lrate 0.001 --wrange 0 0.1 --optimizer adam --mbs 50 --steps 20000 --dims 8 4
 # segmentcounter
 python3 main.py --source segmentcounter --afunc relu --ofunc linear --cfunc softmax_ce --lrate 0.001 --wrange 0 0.1 --optimizer adam --mbs 50 --steps 10000 --dims 100 20
 # mnist
@@ -16,4 +15,8 @@ python3 main.py --source glass.txt --afunc relu --ofunc linear --cfunc softmax_c
 # yeast
 python3 main.py --source yeast.txt --afunc relu --ofunc linear --cfunc softmax_ce --lrate 0.001 --wrange 0 0.1 --optimizer adam --mbs 100 --steps 20000 --dims 100 80 50 20 --usevsi
 # dermatology
-python3 main.py --source dermatology.txt --afunc relu --ofunc linear --cfunc softmax_ce --lrate 0.001 --wrange 0 0.1 --optimizer adam --mbs 100 --steps 10000 --dims 16 --usevsi
+python3 main.py --source dermatology.txt --afunc relu --ofunc linear --cfunc softmax_ce --lrate 0.001 --wrange 0 0.1 --optimizer adam --mbs 100 --steps 10000 --dims 16
+
+
+# explain
+python3 main.py --source symmetry --afunc relu --ofunc linear --cfunc softmax_ce --lrate 0.001 --wrange 0 0.1 --optimizer adam --mbs 50 --steps 10000 --dims 4 --sourceinit 16 1000 --dispw 0 1 --dispb 0 1 --maplayers 0 1 2

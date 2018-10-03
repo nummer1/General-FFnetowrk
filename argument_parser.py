@@ -16,10 +16,13 @@ class argument_parser():
         parser = argparse.ArgumentParser()
         parser.add_argument("-d", "--dims", nargs='+', type=int, required=True,
                 help="dimensions of the neural network")
+        parser.add_argument("--sourceinit", nargs='+', type=int, required=False,
+                help="initialize source with given values. If not given; initialize with default. \
+                Will crash if incorrect or wrong number of values are given")
         parser.add_argument("-s", "--source", required=True,
                 help="data source")
         parser.add_argument("-a", "--afunc", required=True, \
-                help="activation function for hidden layers")
+                help="activation function of hidden layers")
         parser.add_argument("--ofunc", required=True, \
                 help="activation function of output layer")
         parser.add_argument("-c", "--cfunc", required=True, \
@@ -45,16 +48,16 @@ class argument_parser():
         parser.add_argument("--steps", type=int, required=True, \
                 help="total number of minibatches to be run through the system during training")
         parser.add_argument("--maplayers", nargs='*', type=int, required=False, \
-                help="the layers to be visualized during map test")
+                help="the layers to be visualized during the mapping test")
         # parser.add_argument("--mapdend", nargs='*', type=int, required=False, \
         #         help="list of layers whose activation layers will be used to produce dendograms")
         parser.add_argument("--dispw", nargs='*', type=int, required=False, \
                 help="list of the weight matrices to be visualized at the end of run")
         parser.add_argument("--dispb", nargs='*', type=int, required=False, \
                 help="list of bias matrices to be visualized at the end or run")
-        parser.add_argument("--usevsi", action='store_true', \
+        parser.add_argument("--usevsi", action='store_true', required=False, \
                 help="use variance_scaling_initializer to initialize weights")
-        parser.add_argument("--notbest1", action='store_false', \
+        parser.add_argument("--notbest1", action='store_false', required=False, \
                 help="don't use bestk=1 as evaluation function")
         self.args = parser.parse_args()
 
@@ -118,20 +121,39 @@ class argument_parser():
                 target = TFT.int_to_one_hot(int(element[-1])-1, max_d)
                 data_set.append([input, target])
         elif self.args.source == "parity":
-            data_set = TFT.gen_all_parity_cases(10)
+            if self.args.sourceinit is None:
+                data_set = TFT.gen_all_parity_cases(10)
+            else:
+                data_set = TFT.gen_all_parity_cases(self.args.sourceinit[0])
         elif self.args.source == "symmetry":
-            vecs = TFT.gen_symvect_dataset(101, 2000)
+            if self.args.sourceinit is None:
+                vecs = TFT.gen_symvect_dataset(101, 2000)
+            else:
+                vecs = TFT.gen_symvect_dataset(self.args.sourceinit[0], self.args.sourceinit[1])
             inputs = list(map(lambda x: x[:-1], vecs))
             targets = list(map(lambda x: TFT.int_to_one_hot(x[-1], 2), vecs))
             data_set = list(zip(inputs, targets))
         elif self.args.source == "auto_onehot":
-            data_set = TFT.gen_all_one_hot_cases(100)
+            if self.args.sourceinit is None:
+                data_set = TFT.gen_all_one_hot_cases(64)
+            else:
+                data_set = TFT.gen_all_one_hot_cases(self.args.sourceinit[0])
         elif self.args.source == "auto_dense":
-            data_set = TFT.gen_dense_autoencoder_cases(2000, 100)
+            if self.args.sourceinit is None:
+                data_set = TFT.gen_dense_autoencoder_cases(2000, 100)
+            else:
+                data_set = TFT.gen_dense_autoencoder_cases(self.args.sourceinit[0], self.args.sourceinit[1])
         elif self.args.source == "bitcounter":
-            data_set = TFT.gen_vector_count_cases(500, 15)
+            if self.args.sourceinit is None:
+                data_set = TFT.gen_vector_count_cases(500, 15)
+            else:
+                data_set = TFT.gen_vector_count_cases(self.args.sourceinit[0], self.args.sourceinit[1])
         elif self.args.source == "segmentcounter":
-            data_set = TFT.gen_segmented_vector_cases(25, 1000, 0, 8)
+            if self.args.sourceinit is None:
+                data_set = TFT.gen_segmented_vector_cases(25, 1000, 0, 8)
+            else:
+                data_set = TFT.gen_segmented_vector_cases(self.args.sourceinit[0], \
+                            self.args.sourceinit[1], self.args.sourceinit[2], self.args.sourceinit[3])
         elif self.args.source == "mnist":
             # mnist_basics.load_all_flat_cases(type='testing')
             cases = mnist_basics.load_all_flat_cases(type='training')
